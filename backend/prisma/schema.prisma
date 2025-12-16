@@ -1,0 +1,196 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  SALES_CLERK
+  COLLECTOR
+  ACCOUNTANT
+  SALES_MANAGER
+  ADMIN
+}
+
+enum InvoiceStatus {
+  PAID
+  PARTIAL
+  UNPAID
+}
+
+enum PaymentMethod {
+  CASH
+  FAWRY
+}
+
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  DEPOSITED
+}
+
+enum DepositStatus {
+  PENDING
+  VERIFIED
+}
+
+// Models
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole
+  avatar    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  customersAssigned Customer[]        @relation("CollectorCustomers")
+  paymentsCollected Payment[]         @relation("CollectorPayments")
+  deposits          Deposit[]         @relation("CollectorDeposits")
+  invoicesCreated   Invoice[]         @relation("CreatedByUser")
+  routeVisits       CollectorVisit[]
+
+  @@map("users")
+}
+
+model Customer {
+  id               String    @id @default(cuid())
+  name             String
+  phone            String
+  address          String
+  email            String?
+  totalOutstanding Float     @default(0)
+  lastPurchaseDate DateTime?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  collectorId String?
+  collector   User?     @relation("CollectorCustomers", fields: [collectorId], references: [id])
+  invoices    Invoice[]
+  payments    Payment[]
+
+  @@map("customers")
+}
+
+model Product {
+  id        String   @id @default(cuid())
+  name      String
+  price     Float
+  unit      String
+  category  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  invoiceItems InvoiceItem[]
+
+  @@map("products")
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  invoiceNo   String        @unique
+  totalAmount Float
+  paidAmount  Float         @default(0)
+  status      InvoiceStatus @default(UNPAID)
+  dueDate     DateTime
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  customerId  String
+  customer    Customer      @relation(fields: [customerId], references: [id])
+  createdById String
+  createdBy   User          @relation("CreatedByUser", fields: [createdById], references: [id])
+  items       InvoiceItem[]
+  payments    Payment[]
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id        String   @id @default(cuid())
+  quantity  Int
+  unitPrice Float
+  total     Float
+  createdAt DateTime @default(now())
+
+  // Relations
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("invoice_items")
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  amount       Float
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  receiptImage String?
+  notes        String?
+  verifiedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  collectorId String
+  collector   User     @relation("CollectorPayments", fields: [collectorId], references: [id])
+
+  @@map("payments")
+}
+
+model Deposit {
+  id           String        @id @default(cuid())
+  amount       Float
+  method       PaymentMethod
+  status       DepositStatus @default(PENDING)
+  receiptImage String?
+  notes        String?
+  verifiedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  collectorId String
+  collector   User   @relation("CollectorDeposits", fields: [collectorId], references: [id])
+
+  @@map("deposits")
+}
+
+model CollectorVisit {
+  id           String   @id @default(cuid())
+  visitDate    DateTime @default(now())
+  visited      Boolean  @default(false)
+  visitOrder   Int
+  visitedAt    DateTime?
+  notes        String?
+
+  // Relations
+  collectorId String
+  collector   User     @relation(fields: [collectorId], references: [id])
+  customerId  String
+
+  @@unique([collectorId, customerId, visitDate])
+  @@map("collector_visits")
+}
