@@ -42,9 +42,9 @@ const roleNavItems = {
   ],
   sales_manager: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: Users, label: 'Customers', path: '/customers' },
     { icon: Target, label: 'Monthly Targets', path: '/targets' },
     { icon: BarChart3, label: 'Performance', path: '/performance' },
-    { icon: ArrowLeftRight, label: 'Reassign Customers', path: '/reassign' },
   ],
   admin: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },

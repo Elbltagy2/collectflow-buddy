@@ -78,7 +78,7 @@ export class CollectorService {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Check if route exists for today
+    // Get route from CollectorVisit table (created when invoices are assigned)
     let visits = await prisma.collectorVisit.findMany({
       where: {
         collectorId,
@@ -90,61 +90,105 @@ export class CollectorService {
       orderBy: { visitOrder: 'asc' },
     });
 
-    // If no route exists, generate one from assigned customers
+    // If no visits for today, show all customers with outstanding balance
+    // and invoices due today or overdue
     if (visits.length === 0) {
-      visits = await this.generateDailyRoute(collectorId, today);
+      // Get all customers assigned to this collector with outstanding balance
+      const customers = await prisma.customer.findMany({
+        where: {
+          collectorId,
+          isActive: true,
+          totalOutstanding: { gt: 0 },
+        },
+        orderBy: { totalOutstanding: 'desc' },
+        include: {
+          invoices: {
+            where: {
+              status: { in: ['UNPAID', 'PARTIAL'] },
+              dueDate: { lte: tomorrow }, // Due today or overdue
+            },
+            orderBy: { dueDate: 'asc' },
+          },
+        },
+      });
+
+      return customers.map((customer, index) => {
+        const unpaidInvoices = customer.invoices.filter(
+          (inv) => inv.totalAmount > inv.paidAmount
+        );
+        const todayDue = unpaidInvoices.reduce(
+          (sum, inv) => sum + (inv.totalAmount - inv.paidAmount),
+          0
+        );
+
+        return {
+          customerId: customer.id,
+          customerName: customer.name,
+          address: customer.address,
+          phone: customer.phone,
+          outstandingAmount: customer.totalOutstanding,
+          todayDueAmount: todayDue,
+          visited: false,
+          order: index + 1,
+          invoices: unpaidInvoices.map((inv) => ({
+            id: inv.id,
+            invoiceNo: inv.invoiceNo,
+            totalAmount: inv.totalAmount,
+            paidAmount: inv.paidAmount,
+            dueDate: inv.dueDate,
+            status: inv.status,
+          })),
+        };
+      });
     }
 
-    // Get customer details for the route
+    // Get customer details with invoices for the route
+    // Include invoices due today or overdue (not future ones)
     const customerIds = visits.map((v) => v.customerId);
     const customers = await prisma.customer.findMany({
       where: { id: { in: customerIds } },
+      include: {
+        invoices: {
+          where: {
+            status: { in: ['UNPAID', 'PARTIAL'] },
+            dueDate: { lte: tomorrow }, // Due today or overdue
+          },
+          orderBy: { dueDate: 'asc' },
+        },
+      },
     });
 
     const customerMap = new Map(customers.map((c) => [c.id, c]));
 
     return visits.map((visit) => {
       const customer = customerMap.get(visit.customerId);
+      const unpaidInvoices = customer?.invoices.filter(
+        (inv) => inv.totalAmount > inv.paidAmount
+      ) || [];
+      const todayDue = unpaidInvoices.reduce(
+        (sum, inv) => sum + (inv.totalAmount - inv.paidAmount),
+        0
+      );
+
       return {
         customerId: visit.customerId,
         customerName: customer?.name || 'Unknown',
         address: customer?.address || '',
         phone: customer?.phone || '',
         outstandingAmount: customer?.totalOutstanding || 0,
+        todayDueAmount: todayDue,
         visited: visit.visited,
         order: visit.visitOrder,
+        invoices: unpaidInvoices.map((inv) => ({
+          id: inv.id,
+          invoiceNo: inv.invoiceNo,
+          totalAmount: inv.totalAmount,
+          paidAmount: inv.paidAmount,
+          dueDate: inv.dueDate,
+          status: inv.status,
+        })),
       };
     });
-  }
-
-  private async generateDailyRoute(collectorId: string, date: Date): Promise<any[]> {
-    // Get customers with outstanding balance, prioritized by amount
-    const customers = await prisma.customer.findMany({
-      where: {
-        collectorId,
-        isActive: true,
-        totalOutstanding: { gt: 0 },
-      },
-      orderBy: { totalOutstanding: 'desc' },
-      take: 40, // Limit daily route to 40 customers
-    });
-
-    // Create visit records
-    const visits = await Promise.all(
-      customers.map((customer, index) =>
-        prisma.collectorVisit.create({
-          data: {
-            collectorId,
-            customerId: customer.id,
-            visitDate: date,
-            visitOrder: index + 1,
-            visited: false,
-          },
-        })
-      )
-    );
-
-    return visits;
   }
 
   async markCustomerVisited(
@@ -157,7 +201,8 @@ export class CollectorService {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    await prisma.collectorVisit.updateMany({
+    // Check if visit entry exists for today
+    const existingVisit = await prisma.collectorVisit.findFirst({
       where: {
         collectorId,
         customerId,
@@ -166,11 +211,41 @@ export class CollectorService {
           lt: tomorrow,
         },
       },
-      data: {
-        visited,
-        visitedAt: visited ? new Date() : null,
-      },
     });
+
+    if (existingVisit) {
+      // Update existing visit
+      await prisma.collectorVisit.update({
+        where: { id: existingVisit.id },
+        data: {
+          visited,
+          visitedAt: visited ? new Date() : null,
+        },
+      });
+    } else {
+      // Create new visit entry (for fallback route case)
+      const maxOrder = await prisma.collectorVisit.aggregate({
+        where: {
+          collectorId,
+          visitDate: {
+            gte: today,
+            lt: tomorrow,
+          },
+        },
+        _max: { visitOrder: true },
+      });
+
+      await prisma.collectorVisit.create({
+        data: {
+          collectorId,
+          customerId,
+          visitDate: today,
+          visitOrder: (maxOrder._max.visitOrder || 0) + 1,
+          visited,
+          visitedAt: visited ? new Date() : null,
+        },
+      });
+    }
   }
 
   async getWalletBalance(collectorId: string): Promise<number> {

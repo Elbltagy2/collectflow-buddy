@@ -20,6 +20,12 @@ import TodaysRoute from "./pages/collector/TodaysRoute";
 import MyWallet from "./pages/collector/MyWallet";
 import MakeDeposit from "./pages/collector/MakeDeposit";
 
+// Manager Pages
+import CustomerManagement from "./pages/manager/CustomerManagement";
+
+// Admin Pages
+import UserManagement from "./pages/admin/UserManagement";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -43,16 +49,18 @@ const App = () => (
             <Route path="/wallet" element={<MyWallet />} />
             <Route path="/deposit" element={<MakeDeposit />} />
             
+            {/* Manager Routes */}
+            <Route path="/customers" element={<CustomerManagement />} />
+            <Route path="/reassign" element={<CustomerManagement />} />
+
             {/* Placeholder routes for other features */}
             <Route path="/verify-receipts" element={<Dashboard />} />
             <Route path="/outstanding" element={<Dashboard />} />
             <Route path="/export" element={<Dashboard />} />
             <Route path="/targets" element={<Dashboard />} />
             <Route path="/performance" element={<Dashboard />} />
-            <Route path="/reassign" element={<Dashboard />} />
-            <Route path="/users" element={<Dashboard />} />
+            <Route path="/users" element={<UserManagement />} />
             <Route path="/products" element={<Dashboard />} />
-            <Route path="/customers" element={<Dashboard />} />
             <Route path="/settings" element={<Dashboard />} />
             
             <Route path="*" element={<NotFound />} />

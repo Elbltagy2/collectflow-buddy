@@ -77,8 +77,17 @@ export interface DailyRouteItem {
   address: string;
   phone: string;
   outstandingAmount: number;
+  todayDueAmount: number;
   visited: boolean;
   order: number;
+  invoices: {
+    id: string;
+    invoiceNo: string;
+    totalAmount: number;
+    paidAmount: number;
+    dueDate: Date;
+    status: string;
+  }[];
 }
 
 // Report filters

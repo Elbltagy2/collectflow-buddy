@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   CheckCircle,
@@ -16,9 +16,8 @@ import {
   Loader2,
   Receipt
 } from 'lucide-react';
-import { collectorApi, paymentsApi, invoicesApi } from '@/lib/api';
+import { collectorApi, paymentsApi } from '@/lib/api';
 import { toast } from 'sonner';
-import { DailyRoute, Invoice } from '@/types';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-EG', {
@@ -34,8 +33,25 @@ const formatDate = (dateString: string) => {
   });
 };
 
-interface RouteCustomer extends DailyRoute {
-  invoices?: Invoice[];
+interface RouteInvoice {
+  id: string;
+  invoiceNo: string;
+  totalAmount: number;
+  paidAmount: number;
+  dueDate: string;
+  status: string;
+}
+
+interface RouteCustomer {
+  customerId: string;
+  customerName: string;
+  address: string;
+  phone: string;
+  outstandingAmount: number;
+  todayDueAmount: number;
+  visited: boolean;
+  order: number;
+  invoices: RouteInvoice[];
 }
 
 export default function TodaysRoute() {
@@ -44,10 +60,9 @@ export default function TodaysRoute() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'FAWRY'>('CASH');
   const [selectedCustomer, setSelectedCustomer] = useState<RouteCustomer | null>(null);
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<RouteInvoice | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
 
   useEffect(() => {
     loadRoute();
@@ -62,9 +77,18 @@ export default function TodaysRoute() {
           customerName: item.customerName,
           address: item.address,
           phone: item.phone,
-          outstandingAmount: item.outstandingAmount,
+          outstandingAmount: item.outstandingAmount || 0,
+          todayDueAmount: item.todayDueAmount || 0,
           visited: item.visited,
           order: item.order,
+          invoices: (item.invoices || []).map((inv: any) => ({
+            id: inv.id,
+            invoiceNo: inv.invoiceNo,
+            totalAmount: inv.totalAmount,
+            paidAmount: inv.paidAmount,
+            dueDate: inv.dueDate,
+            status: inv.status,
+          })),
         })));
       }
     } catch (error) {
@@ -75,67 +99,25 @@ export default function TodaysRoute() {
     }
   };
 
-  const loadCustomerInvoices = async (customerId: string) => {
-    setIsLoadingInvoices(true);
-    try {
-      const response = await invoicesApi.getByCustomer(customerId);
-      if (response.data) {
-        const invoices = response.data
-          .filter((inv: any) => inv.status !== 'PAID')
-          .map((inv: any) => ({
-            id: inv.id,
-            customerId: inv.customerId,
-            customerName: inv.customer?.name || 'Unknown',
-            items: inv.items || [],
-            totalAmount: inv.totalAmount,
-            paidAmount: inv.paidAmount,
-            status: inv.status.toLowerCase(),
-            createdAt: inv.createdAt,
-            dueDate: inv.dueDate,
-          }));
-
-        // Update the customer in route with invoices
-        setRoute(prev => prev.map(r =>
-          r.customerId === customerId
-            ? { ...r, invoices }
-            : r
-        ));
-
-        // Auto-select first invoice if only one
-        if (invoices.length === 1) {
-          setSelectedInvoice(invoices[0]);
-        }
-
-        return invoices;
-      }
-    } catch (error) {
-      console.error('Failed to load invoices:', error);
-      toast.error('Failed to load customer invoices');
-    } finally {
-      setIsLoadingInvoices(false);
-    }
-    return [];
-  };
-
-  const handleOpenPaymentDialog = async (customer: RouteCustomer) => {
+  const handleOpenPaymentDialog = (customer: RouteCustomer) => {
     setSelectedCustomer(customer);
     setSelectedInvoice(null);
     setPaymentAmount('');
     setPaymentMethod('CASH');
     setIsDialogOpen(true);
 
-    // Load invoices if not already loaded
-    if (!customer.invoices) {
-      await loadCustomerInvoices(customer.customerId);
-    } else if (customer.invoices.length === 1) {
-      setSelectedInvoice(customer.invoices[0]);
+    // Auto-select first invoice if only one
+    if (customer.invoices.length === 1) {
+      const invoice = customer.invoices[0];
+      setSelectedInvoice(invoice);
+      setPaymentAmount((invoice.totalAmount - invoice.paidAmount).toString());
     }
   };
 
   const visitedCount = route.filter(r => r.visited).length;
   const progress = route.length > 0 ? (visitedCount / route.length) * 100 : 0;
-  const totalToCollect = route.reduce((sum, r) => sum + r.outstandingAmount, 0);
-  const collectedAmount = route.filter(r => r.visited).reduce((sum, r) => sum + r.outstandingAmount, 0);
+  const totalToCollect = route.reduce((sum, r) => sum + r.todayDueAmount, 0);
+  const collectedAmount = route.filter(r => r.visited).reduce((sum, r) => sum + r.todayDueAmount, 0);
 
   const handleRecordPayment = async () => {
     if (!selectedCustomer || !paymentAmount || !selectedInvoice) {
@@ -170,7 +152,16 @@ export default function TodaysRoute() {
       // Update local state
       setRoute(route.map(r =>
         r.customerId === selectedCustomer.customerId
-          ? { ...r, visited: true, outstandingAmount: r.outstandingAmount - amount }
+          ? {
+              ...r,
+              visited: true,
+              todayDueAmount: r.todayDueAmount - amount,
+              invoices: r.invoices.map(inv =>
+                inv.id === selectedInvoice.id
+                  ? { ...inv, paidAmount: inv.paidAmount + amount }
+                  : inv
+              ),
+            }
           : r
       ));
 
@@ -186,10 +177,6 @@ export default function TodaysRoute() {
       setIsSubmitting(false);
     }
   };
-
-  // Get current customer's invoices
-  const currentCustomerInvoices = selectedCustomer?.invoices || [];
-  const currentInvoice = route.find(r => r.customerId === selectedCustomer?.customerId);
 
   if (isLoading) {
     return (
@@ -216,7 +203,7 @@ export default function TodaysRoute() {
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Total to Collect</p>
+              <p className="text-sm text-muted-foreground mb-1">Today's Due Amount</p>
               <p className="text-2xl font-bold text-foreground">{formatCurrency(totalToCollect)}</p>
             </div>
             <div>
@@ -263,12 +250,22 @@ export default function TodaysRoute() {
                           <MapPin className="h-3 w-3" />
                           <span>{customer.address}</span>
                         </div>
+                        {customer.invoices.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {customer.invoices.length} invoice{customer.invoices.length > 1 ? 's' : ''} due
+                          </p>
+                        )}
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className="font-bold text-lg text-foreground">
-                          {formatCurrency(customer.outstandingAmount)}
+                          {formatCurrency(customer.todayDueAmount)}
                         </p>
-                        <p className="text-xs text-muted-foreground">Outstanding</p>
+                        <p className="text-xs text-muted-foreground">Due Today</p>
+                        {customer.outstandingAmount > customer.todayDueAmount && (
+                          <p className="text-xs text-muted-foreground">
+                            Total: {formatCurrency(customer.outstandingAmount)}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -289,7 +286,7 @@ export default function TodaysRoute() {
                           Navigate
                         </Button>
                       </a>
-                      {!customer.visited && customer.outstandingAmount > 0 && (
+                      {!customer.visited && customer.invoices.length > 0 && (
                         <Button
                           size="sm"
                           className="gap-2 ml-auto"
@@ -301,6 +298,9 @@ export default function TodaysRoute() {
                       )}
                       {customer.visited && (
                         <span className="badge-success ml-auto">Completed</span>
+                      )}
+                      {!customer.visited && customer.invoices.length === 0 && (
+                        <span className="text-xs text-muted-foreground ml-auto">No invoices due</span>
                       )}
                     </div>
                   </div>
@@ -325,16 +325,11 @@ export default function TodaysRoute() {
               {/* Invoice Selection */}
               <div className="space-y-2">
                 <Label>Select Invoice</Label>
-                {isLoadingInvoices ? (
-                  <div className="flex items-center gap-2 py-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm text-muted-foreground">Loading invoices...</span>
-                  </div>
-                ) : currentCustomerInvoices.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2">No unpaid invoices found</p>
+                {selectedCustomer?.invoices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">No unpaid invoices for today</p>
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {currentCustomerInvoices.map((invoice) => {
+                    {selectedCustomer?.invoices.map((invoice) => {
                       const balance = invoice.totalAmount - invoice.paidAmount;
                       const isSelected = selectedInvoice?.id === invoice.id;
                       return (
@@ -354,21 +349,21 @@ export default function TodaysRoute() {
                             <div className="flex items-center gap-2">
                               <Receipt className="h-4 w-4 text-muted-foreground" />
                               <span className="text-sm font-medium">
-                                {formatDate(invoice.createdAt)}
+                                {invoice.invoiceNo}
                               </span>
                             </div>
                             <span className={
-                              invoice.status === 'partial' ? 'badge-warning' : 'badge-destructive'
+                              invoice.status === 'PARTIAL' ? 'badge-warning' : 'badge-destructive'
                             }>
-                              {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                              {invoice.status}
                             </span>
                           </div>
                           <div className="flex items-center justify-between mt-1">
                             <span className="text-xs text-muted-foreground">
-                              Total: {formatCurrency(invoice.totalAmount)}
+                              Due: {formatDate(invoice.dueDate)}
                             </span>
                             <span className="text-sm font-semibold text-warning">
-                              Due: {formatCurrency(balance)}
+                              Balance: {formatCurrency(balance)}
                             </span>
                           </div>
                         </div>

@@ -1,7 +1,6 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateInvoiceInput, UpdateInvoiceInput, InvoiceQueryInput } from '../schemas/invoice.schema';
-import { customersService } from './customers.service';
 import { Invoice, InvoiceStatus } from '@prisma/client';
 
 export class InvoicesService {
@@ -204,6 +203,11 @@ export class InvoicesService {
       },
     });
 
+    // Auto-add customer to collector's route for the due date
+    if (customer.collectorId) {
+      await this.addCustomerToRoute(customer.collectorId, customer.id, new Date(input.dueDate));
+    }
+
     return invoice;
   }
 
@@ -315,6 +319,64 @@ export class InvoicesService {
     });
 
     return invoices;
+  }
+
+  // Helper to add customer to collector's route for a specific date
+  private async addCustomerToRoute(collectorId: string, customerId: string, dueDate: Date): Promise<void> {
+    // Normalize the date to start of day
+    const routeDate = new Date(dueDate);
+    routeDate.setHours(0, 0, 0, 0);
+
+    // Check if customer is already in the route for this date
+    const existingVisit = await prisma.collectorVisit.findFirst({
+      where: {
+        collectorId,
+        customerId,
+        visitDate: {
+          gte: routeDate,
+          lt: new Date(routeDate.getTime() + 24 * 60 * 60 * 1000),
+        },
+      },
+    });
+
+    if (existingVisit) {
+      // Reset visited status since new invoice was added
+      if (existingVisit.visited) {
+        await prisma.collectorVisit.update({
+          where: { id: existingVisit.id },
+          data: {
+            visited: false,
+            visitedAt: null,
+          },
+        });
+      }
+      return;
+    }
+
+    // Get the current max order for this collector on this date
+    const maxOrder = await prisma.collectorVisit.aggregate({
+      where: {
+        collectorId,
+        visitDate: {
+          gte: routeDate,
+          lt: new Date(routeDate.getTime() + 24 * 60 * 60 * 1000),
+        },
+      },
+      _max: { visitOrder: true },
+    });
+
+    const nextOrder = (maxOrder._max.visitOrder || 0) + 1;
+
+    // Create the visit entry
+    await prisma.collectorVisit.create({
+      data: {
+        collectorId,
+        customerId,
+        visitDate: routeDate,
+        visitOrder: nextOrder,
+        visited: false,
+      },
+    });
   }
 }
 
