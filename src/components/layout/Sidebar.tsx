@@ -51,6 +51,8 @@ const roleNavItems = {
     { icon: UserPlus, label: 'Manage Users', path: '/users' },
     { icon: Package, label: 'Products', path: '/products' },
     { icon: Users, label: 'Customers', path: '/customers' },
+    { icon: Upload, label: 'Upload Invoices', path: '/upload-invoices' },
+    { icon: Search, label: 'Search Invoices', path: '/invoices' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ],
 };
