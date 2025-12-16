@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { 
+import {
   Search,
   Filter,
-  Eye
+  Eye,
+  Loader2
 } from 'lucide-react';
-import { mockInvoices, formatCurrency, formatDate } from '@/data/mockData';
+import { invoicesApi } from '@/lib/api';
 import { Invoice } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -19,37 +20,86 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { toast } from 'sonner';
+
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-EG', {
+    style: 'currency',
+    currency: 'EGP',
+  }).format(amount);
+};
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-EG', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
 
 export default function InvoiceList() {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
-  const filteredInvoices = mockInvoices.filter(inv => {
-    const matchesSearch = 
+  useEffect(() => {
+    loadInvoices();
+  }, [statusFilter]);
+
+  const loadInvoices = async () => {
+    try {
+      const params: any = {};
+      if (statusFilter !== 'all') {
+        params.status = statusFilter;
+      }
+      const response = await invoicesApi.getAll(params);
+      if (response.data) {
+        setInvoices(response.data.map((inv: any) => ({
+          id: inv.id,
+          customerId: inv.customerId,
+          customerName: inv.customer?.name || 'Unknown',
+          items: inv.items || [],
+          totalAmount: inv.totalAmount,
+          paidAmount: inv.paidAmount,
+          status: inv.status.toLowerCase(),
+          createdAt: inv.createdAt,
+          dueDate: inv.dueDate,
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to load invoices:', error);
+      toast.error('Failed to load invoices');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredInvoices = invoices.filter(inv => {
+    const matchesSearch =
       inv.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       inv.customerName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   const columns = [
     { key: 'id' as const, label: 'Invoice #' },
     { key: 'customerName' as const, label: 'Customer' },
-    { 
-      key: 'totalAmount' as const, 
+    {
+      key: 'totalAmount' as const,
       label: 'Total',
       render: (inv: Invoice) => (
         <span className="font-semibold">{formatCurrency(inv.totalAmount)}</span>
       )
     },
-    { 
-      key: 'paidAmount' as const, 
+    {
+      key: 'paidAmount' as const,
       label: 'Paid',
       render: (inv: Invoice) => formatCurrency(inv.paidAmount)
     },
-    { 
-      key: 'customerId' as const, 
+    {
+      key: 'customerId' as const,
       label: 'Balance',
       render: (inv: Invoice) => {
         const balance = inv.totalAmount - inv.paidAmount;
@@ -95,6 +145,16 @@ export default function InvoiceList() {
     },
   ];
 
+  if (isLoading) {
+    return (
+      <MainLayout title="Invoices" subtitle="Loading...">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout title="Invoices" subtitle="View and search all invoices" showSearch>
       <div className="space-y-6 animate-fade-in">
@@ -127,12 +187,12 @@ export default function InvoiceList() {
 
         {/* Results count */}
         <div className="text-sm text-muted-foreground">
-          Showing {filteredInvoices.length} of {mockInvoices.length} invoices
+          Showing {filteredInvoices.length} of {invoices.length} invoices
         </div>
 
         {/* Table */}
-        <DataTable 
-          columns={columns} 
+        <DataTable
+          columns={columns}
           data={filteredInvoices}
           onRowClick={(invoice) => setSelectedInvoice(invoice)}
           emptyMessage="No invoices found"

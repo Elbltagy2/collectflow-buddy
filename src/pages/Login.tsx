@@ -34,7 +34,7 @@ export default function Login() {
     if (success) {
       navigate('/dashboard');
     } else {
-      setError('Invalid email or password. Use demo123 as password.');
+      setError('Invalid email or password');
     }
     
     setIsLoading(false);

@@ -1,40 +1,91 @@
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
-import { 
-  Wallet, 
-  Banknote, 
+import {
+  Wallet,
+  Banknote,
   Smartphone,
   ArrowUpRight,
-  TrendingUp
+  TrendingUp,
+  Loader2
 } from 'lucide-react';
-import { mockPayments, mockCollectorStats, formatCurrency, formatDate } from '@/data/mockData';
+import { collectorApi, paymentsApi } from '@/lib/api';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
+import { CollectorStats, Payment } from '@/types';
+
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-EG', {
+    style: 'currency',
+    currency: 'EGP',
+  }).format(amount);
+};
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-EG', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
 
 export default function MyWallet() {
-  const stats = mockCollectorStats[0];
-  const myPayments = mockPayments.filter(p => p.collectorId === '2' && p.status === 'pending');
-  const cashPending = myPayments.filter(p => p.method === 'cash').reduce((sum, p) => sum + p.amount, 0);
-  const fawryPending = myPayments.filter(p => p.method === 'fawry').reduce((sum, p) => sum + p.amount, 0);
+  const [stats, setStats] = useState<CollectorStats | null>(null);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [statsResponse, walletResponse, paymentsResponse] = await Promise.all([
+        collectorApi.getStats(),
+        collectorApi.getWallet(),
+        paymentsApi.getAll({ status: 'pending' }),
+      ]);
+
+      if (statsResponse.data) {
+        setStats(statsResponse.data);
+      }
+      if (walletResponse.data) {
+        setWalletBalance(walletResponse.data.balance);
+      }
+      if (paymentsResponse.data) {
+        setPayments(paymentsResponse.data);
+      }
+    } catch (error) {
+      console.error('Failed to load wallet data:', error);
+      toast.error('Failed to load wallet data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const cashPending = payments.filter(p => p.method === 'cash').reduce((sum, p) => sum + p.amount, 0);
+  const fawryPending = payments.filter(p => p.method === 'fawry').reduce((sum, p) => sum + p.amount, 0);
 
   const columns = [
     {
       key: 'createdAt',
       label: 'Date',
-      render: (p: typeof mockPayments[0]) => formatDate(p.createdAt)
+      render: (p: Payment) => formatDate(p.createdAt)
     },
     {
       key: 'amount',
       label: 'Amount',
-      render: (p: typeof mockPayments[0]) => (
+      render: (p: Payment) => (
         <span className="font-semibold">{formatCurrency(p.amount)}</span>
       )
     },
     {
       key: 'method',
       label: 'Method',
-      render: (p: typeof mockPayments[0]) => (
+      render: (p: Payment) => (
         <span className={p.method === 'cash' ? 'badge-primary' : 'badge-success'}>
           {p.method === 'cash' ? 'Cash' : 'Fawry'}
         </span>
@@ -43,11 +94,21 @@ export default function MyWallet() {
     {
       key: 'status',
       label: 'Status',
-      render: (p: typeof mockPayments[0]) => (
+      render: () => (
         <span className="badge-warning">Pending Deposit</span>
       )
     },
   ];
+
+  if (isLoading) {
+    return (
+      <MainLayout title="My Wallet" subtitle="Loading...">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout title="My Wallet" subtitle="Track your collections">
@@ -58,7 +119,7 @@ export default function MyWallet() {
             <Wallet className="h-8 w-8" />
             <div>
               <p className="text-sm opacity-80">Wallet Balance</p>
-              <p className="text-3xl font-bold">{formatCurrency(stats.walletBalance)}</p>
+              <p className="text-3xl font-bold">{formatCurrency(walletBalance)}</p>
             </div>
           </div>
           <p className="text-sm opacity-80 mb-4">
@@ -83,7 +144,7 @@ export default function MyWallet() {
             </div>
             <p className="text-2xl font-bold text-foreground">{formatCurrency(cashPending)}</p>
           </Card>
-          
+
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-accent/10">
@@ -101,7 +162,7 @@ export default function MyWallet() {
               </div>
               <span className="text-sm text-muted-foreground">Total Today</span>
             </div>
-            <p className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalCollected)}</p>
+            <p className="text-2xl font-bold text-foreground">{formatCurrency(stats?.totalCollected || 0)}</p>
           </Card>
         </div>
 
@@ -113,35 +174,37 @@ export default function MyWallet() {
               <Button size="sm">Deposit Now</Button>
             </Link>
           </div>
-          <DataTable 
-            columns={columns} 
-            data={myPayments}
+          <DataTable
+            columns={columns}
+            data={payments}
             emptyMessage="No pending deposits"
           />
         </div>
 
         {/* Daily Summary */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Today's Summary</h2>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Collected</p>
-              <p className="text-xl font-bold text-foreground">{formatCurrency(stats.totalCollected)}</p>
+        {stats && (
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Today's Summary</h2>
+            <div className="grid gap-4 md:grid-cols-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Collected</p>
+                <p className="text-xl font-bold text-foreground">{formatCurrency(stats.totalCollected)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Cash Collections</p>
+                <p className="text-xl font-bold text-foreground">{formatCurrency(stats.cashAmount)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Fawry Collections</p>
+                <p className="text-xl font-bold text-foreground">{formatCurrency(stats.fawryAmount)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Customers Visited</p>
+                <p className="text-xl font-bold text-foreground">{stats.customersVisited}/{stats.totalCustomers}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Cash Collections</p>
-              <p className="text-xl font-bold text-foreground">{formatCurrency(stats.cashAmount)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Fawry Collections</p>
-              <p className="text-xl font-bold text-foreground">{formatCurrency(stats.fawryAmount)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Customers Visited</p>
-              <p className="text-xl font-bold text-foreground">{stats.customersVisited}/{stats.totalCustomers}</p>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        )}
       </div>
     </MainLayout>
   );

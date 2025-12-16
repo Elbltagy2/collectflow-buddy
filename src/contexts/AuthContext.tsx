@@ -1,9 +1,11 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { User, UserRole } from '@/types';
+import { authApi, clearTokens, getAccessToken } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   switchRole: (role: UserRole) => void;
@@ -11,65 +13,86 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Demo users for each role
-const demoUsers: Record<UserRole, User> = {
-  sales_clerk: {
-    id: '1',
-    name: 'Ahmed Hassan',
-    email: 'clerk@demo.com',
-    role: 'sales_clerk',
-  },
-  collector: {
-    id: '2',
-    name: 'Mohamed Ali',
-    email: 'collector@demo.com',
-    role: 'collector',
-  },
-  accountant: {
-    id: '3',
-    name: 'Sara Ahmed',
-    email: 'accountant@demo.com',
-    role: 'accountant',
-  },
-  sales_manager: {
-    id: '4',
-    name: 'Khaled Ibrahim',
-    email: 'manager@demo.com',
-    role: 'sales_manager',
-  },
-  admin: {
-    id: '5',
-    name: 'Admin User',
-    email: 'admin@demo.com',
-    role: 'admin',
-  },
+// Map backend role to frontend role
+const mapRole = (backendRole: string): UserRole => {
+  const roleMap: Record<string, UserRole> = {
+    'SALES_CLERK': 'sales_clerk',
+    'COLLECTOR': 'collector',
+    'ACCOUNTANT': 'accountant',
+    'SALES_MANAGER': 'sales_manager',
+    'ADMIN': 'admin',
+  };
+  return roleMap[backendRole] || 'sales_clerk';
 };
+
+// Map backend user to frontend user
+const mapUser = (backendUser: any): User => ({
+  id: backendUser.id,
+  name: backendUser.name,
+  email: backendUser.email,
+  role: mapRole(backendUser.role),
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    // Demo login - find user by email
-    const foundUser = Object.values(demoUsers).find(u => u.email === email);
-    if (foundUser && password === 'demo123') {
-      setUser(foundUser);
-      return true;
-    }
-    return false;
+  // Check for existing session on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = getAccessToken();
+      if (token) {
+        try {
+          const response = await authApi.getMe();
+          if (response.data) {
+            setUser(mapUser(response.data));
+          }
+        } catch (error) {
+          // Token invalid or expired
+          clearTokens();
+        }
+      }
+      setIsLoading(false);
+    };
+    checkAuth();
   }, []);
 
-  const logout = useCallback(() => {
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    try {
+      const response = await authApi.login(email, password);
+      if (response.data?.user) {
+        setUser(mapUser(response.data.user));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      // Ignore logout errors
+    }
     setUser(null);
   }, []);
 
   const switchRole = useCallback((role: UserRole) => {
-    setUser(demoUsers[role]);
-  }, []);
+    // This is for demo purposes - in production, users would need to re-authenticate
+    // For now, we keep it for easy testing
+    if (user) {
+      setUser({ ...user, role });
+    }
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{
       user,
       isAuthenticated: !!user,
+      isLoading,
       login,
       logout,
       switchRole,
