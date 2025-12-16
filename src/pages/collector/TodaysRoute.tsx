@@ -13,11 +13,12 @@ import {
   Phone,
   DollarSign,
   Navigation,
-  Loader2
+  Loader2,
+  Receipt
 } from 'lucide-react';
-import { collectorApi, paymentsApi } from '@/lib/api';
+import { collectorApi, paymentsApi, invoicesApi } from '@/lib/api';
 import { toast } from 'sonner';
-import { DailyRoute } from '@/types';
+import { DailyRoute, Invoice } from '@/types';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-EG', {
@@ -26,14 +27,27 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-EG', {
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+interface RouteCustomer extends DailyRoute {
+  invoices?: Invoice[];
+}
+
 export default function TodaysRoute() {
-  const [route, setRoute] = useState<DailyRoute[]>([]);
+  const [route, setRoute] = useState<RouteCustomer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'fawry'>('cash');
-  const [selectedCustomer, setSelectedCustomer] = useState<DailyRoute | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'FAWRY'>('CASH');
+  const [selectedCustomer, setSelectedCustomer] = useState<RouteCustomer | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
 
   useEffect(() => {
     loadRoute();
@@ -61,13 +75,73 @@ export default function TodaysRoute() {
     }
   };
 
+  const loadCustomerInvoices = async (customerId: string) => {
+    setIsLoadingInvoices(true);
+    try {
+      const response = await invoicesApi.getByCustomer(customerId);
+      if (response.data) {
+        const invoices = response.data
+          .filter((inv: any) => inv.status !== 'PAID')
+          .map((inv: any) => ({
+            id: inv.id,
+            customerId: inv.customerId,
+            customerName: inv.customer?.name || 'Unknown',
+            items: inv.items || [],
+            totalAmount: inv.totalAmount,
+            paidAmount: inv.paidAmount,
+            status: inv.status.toLowerCase(),
+            createdAt: inv.createdAt,
+            dueDate: inv.dueDate,
+          }));
+
+        // Update the customer in route with invoices
+        setRoute(prev => prev.map(r =>
+          r.customerId === customerId
+            ? { ...r, invoices }
+            : r
+        ));
+
+        // Auto-select first invoice if only one
+        if (invoices.length === 1) {
+          setSelectedInvoice(invoices[0]);
+        }
+
+        return invoices;
+      }
+    } catch (error) {
+      console.error('Failed to load invoices:', error);
+      toast.error('Failed to load customer invoices');
+    } finally {
+      setIsLoadingInvoices(false);
+    }
+    return [];
+  };
+
+  const handleOpenPaymentDialog = async (customer: RouteCustomer) => {
+    setSelectedCustomer(customer);
+    setSelectedInvoice(null);
+    setPaymentAmount('');
+    setPaymentMethod('CASH');
+    setIsDialogOpen(true);
+
+    // Load invoices if not already loaded
+    if (!customer.invoices) {
+      await loadCustomerInvoices(customer.customerId);
+    } else if (customer.invoices.length === 1) {
+      setSelectedInvoice(customer.invoices[0]);
+    }
+  };
+
   const visitedCount = route.filter(r => r.visited).length;
   const progress = route.length > 0 ? (visitedCount / route.length) * 100 : 0;
   const totalToCollect = route.reduce((sum, r) => sum + r.outstandingAmount, 0);
   const collectedAmount = route.filter(r => r.visited).reduce((sum, r) => sum + r.outstandingAmount, 0);
 
   const handleRecordPayment = async () => {
-    if (!selectedCustomer || !paymentAmount) return;
+    if (!selectedCustomer || !paymentAmount || !selectedInvoice) {
+      toast.error('Please select an invoice and enter amount');
+      return;
+    }
 
     const amount = parseFloat(paymentAmount);
     if (isNaN(amount) || amount <= 0) {
@@ -75,11 +149,17 @@ export default function TodaysRoute() {
       return;
     }
 
+    const invoiceBalance = selectedInvoice.totalAmount - selectedInvoice.paidAmount;
+    if (amount > invoiceBalance) {
+      toast.error(`Amount exceeds invoice balance (${formatCurrency(invoiceBalance)})`);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Create payment record
       await paymentsApi.create({
-        customerId: selectedCustomer.customerId,
+        invoiceId: selectedInvoice.id,
         amount,
         method: paymentMethod,
       });
@@ -90,21 +170,26 @@ export default function TodaysRoute() {
       // Update local state
       setRoute(route.map(r =>
         r.customerId === selectedCustomer.customerId
-          ? { ...r, visited: true }
+          ? { ...r, visited: true, outstandingAmount: r.outstandingAmount - amount }
           : r
       ));
 
       toast.success(`Payment of ${formatCurrency(amount)} recorded for ${selectedCustomer.customerName}`);
       setIsDialogOpen(false);
       setPaymentAmount('');
-      setPaymentMethod('cash');
+      setPaymentMethod('CASH');
       setSelectedCustomer(null);
+      setSelectedInvoice(null);
     } catch (error: any) {
       toast.error(error.message || 'Failed to record payment');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Get current customer's invoices
+  const currentCustomerInvoices = selectedCustomer?.invoices || [];
+  const currentInvoice = route.find(r => r.customerId === selectedCustomer?.customerId);
 
   if (isLoading) {
     return (
@@ -204,73 +289,15 @@ export default function TodaysRoute() {
                           Navigate
                         </Button>
                       </a>
-                      {!customer.visited && (
-                        <Dialog open={isDialogOpen && selectedCustomer?.customerId === customer.customerId} onOpenChange={(open) => {
-                          setIsDialogOpen(open);
-                          if (open) setSelectedCustomer(customer);
-                        }}>
-                          <DialogTrigger asChild>
-                            <Button size="sm" className="gap-2 ml-auto">
-                              <DollarSign className="h-4 w-4" />
-                              Record Payment
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Record Payment</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4 pt-4">
-                              <div>
-                                <p className="text-sm text-muted-foreground">Customer</p>
-                                <p className="font-semibold">{customer.customerName}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-muted-foreground">Outstanding Balance</p>
-                                <p className="text-xl font-bold text-warning">
-                                  {formatCurrency(customer.outstandingAmount)}
-                                </p>
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="amount">Payment Amount</Label>
-                                <Input
-                                  id="amount"
-                                  type="number"
-                                  placeholder="Enter amount"
-                                  value={paymentAmount}
-                                  onChange={(e) => setPaymentAmount(e.target.value)}
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label>Payment Method</Label>
-                                <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'cash' | 'fawry')}>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="cash">Cash</SelectItem>
-                                    <SelectItem value="fawry">Fawry</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  className="flex-1"
-                                  onClick={() => setPaymentAmount(customer.outstandingAmount.toString())}
-                                >
-                                  Full Amount
-                                </Button>
-                                <Button
-                                  className="flex-1"
-                                  onClick={handleRecordPayment}
-                                  disabled={isSubmitting}
-                                >
-                                  {isSubmitting ? 'Recording...' : 'Record Payment'}
-                                </Button>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                      {!customer.visited && customer.outstandingAmount > 0 && (
+                        <Button
+                          size="sm"
+                          className="gap-2 ml-auto"
+                          onClick={() => handleOpenPaymentDialog(customer)}
+                        >
+                          <DollarSign className="h-4 w-4" />
+                          Record Payment
+                        </Button>
                       )}
                       {customer.visited && (
                         <span className="badge-success ml-auto">Completed</span>
@@ -282,6 +309,129 @@ export default function TodaysRoute() {
             ))}
           </div>
         )}
+
+        {/* Payment Dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Record Payment</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Customer</p>
+                <p className="font-semibold">{selectedCustomer?.customerName}</p>
+              </div>
+
+              {/* Invoice Selection */}
+              <div className="space-y-2">
+                <Label>Select Invoice</Label>
+                {isLoadingInvoices ? (
+                  <div className="flex items-center gap-2 py-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-muted-foreground">Loading invoices...</span>
+                  </div>
+                ) : currentCustomerInvoices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">No unpaid invoices found</p>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {currentCustomerInvoices.map((invoice) => {
+                      const balance = invoice.totalAmount - invoice.paidAmount;
+                      const isSelected = selectedInvoice?.id === invoice.id;
+                      return (
+                        <div
+                          key={invoice.id}
+                          onClick={() => {
+                            setSelectedInvoice(invoice);
+                            setPaymentAmount(balance.toString());
+                          }}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Receipt className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">
+                                {formatDate(invoice.createdAt)}
+                              </span>
+                            </div>
+                            <span className={
+                              invoice.status === 'partial' ? 'badge-warning' : 'badge-destructive'
+                            }>
+                              {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-xs text-muted-foreground">
+                              Total: {formatCurrency(invoice.totalAmount)}
+                            </span>
+                            <span className="text-sm font-semibold text-warning">
+                              Due: {formatCurrency(balance)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {selectedInvoice && (
+                <>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Invoice Balance</p>
+                    <p className="text-xl font-bold text-warning">
+                      {formatCurrency(selectedInvoice.totalAmount - selectedInvoice.paidAmount)}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">Payment Amount</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      placeholder="Enter amount"
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Payment Method</Label>
+                    <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'CASH' | 'FAWRY')}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CASH">Cash</SelectItem>
+                        <SelectItem value="FAWRY">Fawry</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setPaymentAmount((selectedInvoice.totalAmount - selectedInvoice.paidAmount).toString())}
+                    >
+                      Full Amount
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      onClick={handleRecordPayment}
+                      disabled={isSubmitting || !selectedInvoice}
+                    >
+                      {isSubmitting ? 'Recording...' : 'Record Payment'}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );

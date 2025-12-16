@@ -292,8 +292,10 @@ async function main() {
 
   console.log('✅ Created 5 invoices');
 
-  // Create payments
+  // Create payments - some pending (in wallet), some deposited
   console.log('💰 Creating payments...');
+
+  // This payment was already deposited (not in wallet)
   await prisma.payment.create({
     data: {
       invoiceId: invoice1.id,
@@ -305,15 +307,15 @@ async function main() {
     },
   });
 
+  // These payments are PENDING - should show in wallet balance
   await prisma.payment.create({
     data: {
-      invoiceId: invoice3.id,
-      customerId: customers[1].id,
+      invoiceId: invoice2.id,
+      customerId: customers[0].id,
       collectorId: collector1.id,
-      amount: 1488,
-      method: PaymentMethod.FAWRY,
-      status: PaymentStatus.VERIFIED,
-      receiptImage: '/uploads/receipts/receipt1.jpg',
+      amount: 400,
+      method: PaymentMethod.CASH,
+      status: PaymentStatus.PENDING,
     },
   });
 
@@ -333,14 +335,14 @@ async function main() {
       invoiceId: invoice5.id,
       customerId: customers[4].id,
       collectorId: collector1.id,
-      amount: 200,
+      amount: 1200,
       method: PaymentMethod.FAWRY,
       status: PaymentStatus.PENDING,
-      receiptImage: '/uploads/receipts/receipt2.jpg',
     },
   });
 
-  console.log('✅ Created 4 payments');
+  // Wallet balance for collector1 should be: 400 + 950 + 1200 = 2550 EGP
+  console.log('✅ Created 4 payments (wallet balance: 2550 EGP)');
 
   // Create collector visits for today
   console.log('🗺️ Creating daily route...');
@@ -362,19 +364,8 @@ async function main() {
 
   console.log('✅ Created daily route for collector');
 
-  // Create a deposit
-  console.log('🏦 Creating deposits...');
-  await prisma.deposit.create({
-    data: {
-      collectorId: collector1.id,
-      amount: 500,
-      method: PaymentMethod.CASH,
-      status: 'VERIFIED',
-      verifiedAt: new Date(),
-    },
-  });
-
-  console.log('✅ Created 1 deposit');
+  // No pending deposits - wallet should show full balance of 2550 EGP
+  console.log('🏦 No pending deposits (wallet shows full balance)');
 
   console.log('\n✨ Seed completed successfully!');
   console.log('\n📝 Demo accounts:');

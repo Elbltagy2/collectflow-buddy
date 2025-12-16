@@ -46,7 +46,7 @@ export default function MyWallet() {
       const [statsResponse, walletResponse, paymentsResponse] = await Promise.all([
         collectorApi.getStats(),
         collectorApi.getWallet(),
-        paymentsApi.getAll({ status: 'pending' }),
+        paymentsApi.getAll({ status: 'PENDING' }),
       ]);
 
       if (statsResponse.data) {
@@ -56,7 +56,10 @@ export default function MyWallet() {
         setWalletBalance(walletResponse.data.balance);
       }
       if (paymentsResponse.data) {
-        setPayments(paymentsResponse.data);
+        setPayments(paymentsResponse.data.map((p: Record<string, unknown>) => ({
+          ...p,
+          method: (p.method as string).toLowerCase(),
+        })) as Payment[]);
       }
     } catch (error) {
       console.error('Failed to load wallet data:', error);
