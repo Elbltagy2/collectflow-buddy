@@ -23,6 +23,8 @@ import MakeDeposit from "./pages/collector/MakeDeposit";
 
 // Manager Pages
 import CustomerManagement from "./pages/manager/CustomerManagement";
+import MonthlyTargets from "./pages/manager/MonthlyTargets";
+import Performance from "./pages/manager/Performance";
 
 // Admin Pages
 import UserManagement from "./pages/admin/UserManagement";
@@ -72,9 +74,11 @@ const App = () => (
             <Route path="/outstanding" element={<ProtectedRoute><OutstandingReport /></ProtectedRoute>} />
             <Route path="/export" element={<ProtectedRoute><ExportReports /></ProtectedRoute>} />
 
+            {/* Sales Manager Routes */}
+            <Route path="/targets" element={<ProtectedRoute><MonthlyTargets /></ProtectedRoute>} />
+            <Route path="/performance" element={<ProtectedRoute><Performance /></ProtectedRoute>} />
+
             {/* Placeholder routes for other features */}
-            <Route path="/targets" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/performance" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
