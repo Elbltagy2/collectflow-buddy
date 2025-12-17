@@ -1,49 +1,55 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { Loader2 } from "lucide-react";
 
-// Pages
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import NotFound from "./pages/NotFound";
+// Lazy loaded pages for code splitting
+const Index = lazy(() => import("./pages/Index"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Sales Clerk Pages
-import UploadInvoices from "./pages/sales-clerk/UploadInvoices";
-import InvoiceList from "./pages/sales-clerk/InvoiceList";
+const UploadInvoices = lazy(() => import("./pages/sales-clerk/UploadInvoices"));
+const InvoiceList = lazy(() => import("./pages/sales-clerk/InvoiceList"));
 
 // Collector Pages
-import MyCustomers from "./pages/collector/MyCustomers";
-import TodaysRoute from "./pages/collector/TodaysRoute";
-import MyWallet from "./pages/collector/MyWallet";
-import MakeDeposit from "./pages/collector/MakeDeposit";
+const MyCustomers = lazy(() => import("./pages/collector/MyCustomers"));
+const TodaysRoute = lazy(() => import("./pages/collector/TodaysRoute"));
+const MyWallet = lazy(() => import("./pages/collector/MyWallet"));
+const MakeDeposit = lazy(() => import("./pages/collector/MakeDeposit"));
 
 // Manager Pages
-import CustomerManagement from "./pages/manager/CustomerManagement";
-import MonthlyTargets from "./pages/manager/MonthlyTargets";
-import Performance from "./pages/manager/Performance";
+const CustomerManagement = lazy(() => import("./pages/manager/CustomerManagement"));
+const MonthlyTargets = lazy(() => import("./pages/manager/MonthlyTargets"));
+const Performance = lazy(() => import("./pages/manager/Performance"));
 
 // Admin Pages
-import UserManagement from "./pages/admin/UserManagement";
-import DepositApproval from "./pages/admin/DepositApproval";
+const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
+const DepositApproval = lazy(() => import("./pages/admin/DepositApproval"));
 
 // Accountant Pages
-import VerifyReceipts from "./pages/accountant/VerifyReceipts";
-import OutstandingReport from "./pages/accountant/OutstandingReport";
-import ExportReports from "./pages/accountant/ExportReports";
+const VerifyReceipts = lazy(() => import("./pages/accountant/VerifyReceipts"));
+const OutstandingReport = lazy(() => import("./pages/accountant/OutstandingReport"));
+const ExportReports = lazy(() => import("./pages/accountant/ExportReports"));
 
-const queryClient = new QueryClient();
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex h-screen items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+  <AuthProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Public Route */}
             <Route path="/" element={<Index />} />
@@ -84,10 +90,10 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+        </Suspense>
+      </BrowserRouter>
+    </TooltipProvider>
+  </AuthProvider>
 );
 
 export default App;
