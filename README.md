@@ -2,10 +2,25 @@
 
 A comprehensive invoice collection management system for businesses to track invoices, manage collectors, and monitor payments.
 
+## Live Demo
+
+- **Frontend**: [Vercel Deployment](https://collectflow-buddy.vercel.app)
+- **Backend**: [Railway Deployment](https://collectflow-buddy-production.up.railway.app)
+
+### Demo Accounts
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@demo.com | demo123 |
+| Sales Clerk | clerk@demo.com | demo123 |
+| Collector | collector@demo.com | demo123 |
+| Accountant | accountant@demo.com | demo123 |
+| Sales Manager | manager@demo.com | demo123 |
+
 ## Features
 
 ### Role-Based Access
-- **Admin**: Full system access - manage users, products, customers, upload invoices
+- **Admin**: Full system access - manage users, products, customers, upload invoices, approve deposits
 - **Sales Clerk**: Upload invoices via Excel, create manual invoices, search invoices
 - **Collector**: View assigned customers, daily routes, record payments, manage wallet, make deposits
 - **Accountant**: Verify receipts, view outstanding reports, export reports
@@ -17,6 +32,7 @@ A comprehensive invoice collection management system for businesses to track inv
 - **Payment Collection**: Collectors record payments against specific invoices
 - **Wallet Management**: Track collected amounts before deposit
 - **Deposit Tracking**: Upload receipt images for verification
+- **Mobile Responsive**: Fully responsive design for field collectors
 
 ## Tech Stack
 
@@ -25,30 +41,31 @@ A comprehensive invoice collection management system for businesses to track inv
 - Vite for build tooling
 - Tailwind CSS for styling
 - shadcn/ui component library
-- React Query for data fetching
 - React Router for navigation
+- Sonner for toast notifications
 
 ### Backend
 - Node.js with Express
 - TypeScript
 - Prisma ORM
 - PostgreSQL database
-- JWT authentication
+- JWT authentication (access + refresh tokens)
 - Multer for file uploads
 - xlsx for Excel parsing
+- Zod for validation
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+ (install via [nvm](https://github.com/nvm-sh/nvm))
+- Node.js 18+
 - PostgreSQL database
 - npm or yarn
 
-### Installation
+### Local Development
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/Elbltagy2/collectflow-buddy.git
 cd collectflow-buddy
 ```
 
@@ -78,6 +95,7 @@ JWT_SECRET=your-secret-key
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_SECRET=your-refresh-secret
 JWT_REFRESH_EXPIRES_IN=7d
+FRONTEND_URL=http://localhost:8080
 UPLOAD_DIR=./uploads
 MAX_FILE_SIZE=5242880
 ```
@@ -90,7 +108,7 @@ npx prisma migrate dev --name init
 npx prisma db seed
 ```
 
-### Running the Application
+### Running Locally
 
 **Start the backend server:**
 ```bash
@@ -106,17 +124,27 @@ npm run dev
 ```
 Frontend runs on http://localhost:8080
 
-### Demo Accounts
+## Deployment
 
-After seeding, these accounts are available:
+### Backend (Railway)
 
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@example.com | password123 |
-| Sales Clerk | clerk@example.com | password123 |
-| Collector | collector@example.com | password123 |
-| Accountant | accountant@example.com | password123 |
-| Sales Manager | manager@example.com | password123 |
+1. Create a new project on [Railway](https://railway.app)
+2. Add a PostgreSQL database
+3. Connect your GitHub repository
+4. Set the root directory to `/backend`
+5. Add environment variables:
+   - `DATABASE_URL` (from Railway PostgreSQL)
+   - `JWT_SECRET`
+   - `JWT_REFRESH_SECRET`
+   - `FRONTEND_URL` (your Vercel URL)
+   - `NODE_ENV=production`
+
+### Frontend (Vercel)
+
+1. Import project on [Vercel](https://vercel.com)
+2. Set environment variable:
+   - `VITE_API_URL=https://your-railway-url.up.railway.app/api`
+3. Deploy
 
 ## Project Structure
 
@@ -131,8 +159,10 @@ collectflow-buddy/
 │   ├── pages/               # Page components by role
 │   │   ├── admin/
 │   │   ├── collector/
+│   │   ├── accountant/
 │   │   ├── manager/
-│   │   └── sales-clerk/
+│   │   ├── sales-clerk/
+│   │   └── dashboards/
 │   └── App.tsx              # Main app with routes
 ├── backend/                  # Backend source
 │   ├── prisma/              # Database schema and migrations
@@ -146,7 +176,8 @@ collectflow-buddy/
 │   │   ├── schemas/         # Zod validation schemas
 │   │   ├── services/        # Business logic
 │   │   └── types/           # TypeScript types
-│   └── uploads/             # Uploaded files (receipts, invoices)
+│   ├── uploads/             # Uploaded files (receipts)
+│   └── Dockerfile           # Docker config for Railway
 └── public/                   # Static assets
 ```
 
@@ -158,6 +189,21 @@ collectflow-buddy/
 - `POST /api/auth/refresh` - Refresh access token
 - `GET /api/auth/me` - Get current user
 
+### Users (Admin)
+- `GET /api/users` - List all users
+- `POST /api/users` - Create user
+- `PUT /api/users/:id` - Update user
+- `DELETE /api/users/:id` - Delete user
+
+### Customers
+- `GET /api/customers` - List customers
+- `POST /api/customers` - Create customer
+- `PUT /api/customers/:id/assign` - Assign collector
+
+### Products
+- `GET /api/products` - List products
+- `POST /api/products` - Create product
+
 ### Invoices
 - `GET /api/invoices` - List all invoices
 - `POST /api/invoices` - Create invoice
@@ -168,16 +214,24 @@ collectflow-buddy/
 - `GET /api/collector/route` - Get today's route
 - `GET /api/collector/stats` - Get collector stats
 - `GET /api/collector/wallet` - Get wallet balance
-- `POST /api/collector/visit/:customerId` - Mark customer visited
+- `PUT /api/collector/route/:customerId/visited` - Mark visited
 
 ### Payments
 - `GET /api/payments` - List payments
 - `POST /api/payments` - Record payment
+- `PUT /api/payments/:id/verify` - Verify payment
 
 ### Deposits
 - `GET /api/deposits` - List deposits
 - `POST /api/deposits` - Create deposit
 - `POST /api/deposits/:id/receipt` - Upload receipt
+- `PUT /api/deposits/:id/verify` - Verify deposit
+
+### Reports
+- `GET /api/reports/dashboard` - Dashboard stats
+- `GET /api/reports/collections` - Collections report
+- `GET /api/reports/outstanding` - Outstanding balances
+- `GET /api/reports/performance` - Collector performance
 
 ## Excel Invoice Format
 
@@ -185,7 +239,7 @@ When uploading invoices via Excel, use these column headers:
 - `customer_name` or `customerName` or `Customer`
 - `product_name` or `productName` or `Product`
 - `quantity` or `Quantity`
-- `unit_price` or `unitPrice` or `Price` (optional - uses product price if not provided)
+- `unit_price` or `unitPrice` or `Price` (optional)
 
 Example:
 | customer_name | product_name | quantity | unit_price |
@@ -195,12 +249,12 @@ Example:
 
 ## How Routes Work
 
-1. When an invoice is created (manually or via Excel upload), the system checks the due date
-2. If the customer has an assigned collector, a `CollectorVisit` entry is created for that due date
+1. When an invoice is created with a due date, the system checks if the customer has an assigned collector
+2. A `CollectorVisit` entry is created for that collector and due date
 3. The collector sees customers with due/overdue invoices in their "Today's Route"
 4. When recording a payment, the collector selects the specific invoice
-5. After payment, the customer is marked as "visited" for the day
-6. If a new invoice is added for an already-visited customer, their status resets to "not visited"
+5. After all invoices are paid, the customer is marked as "visited"
+6. Partial payments update invoice status to "PARTIAL"
 
 ## License
 
