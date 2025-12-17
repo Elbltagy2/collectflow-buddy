@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-collectflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-collectflow123}
+      POSTGRES_DB: ${POSTGRES_DB:-collectflow}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U collectflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-collectflow}:${POSTGRES_PASSWORD:-collectflow123}@postgres:5432/${POSTGRES_DB:-collectflow}
+      JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-this-refresh-secret}
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      NODE_ENV: production
+      PORT: 3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+    restart: unless-stopped
+
+  frontend:
+    build: .
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  uploads:

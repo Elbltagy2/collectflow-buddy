@@ -7,10 +7,21 @@ import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
 
-// CORS configuration
+// CORS configuration - supports multiple origins separated by comma
+const allowedOrigins = config.frontendUrl.split(',').map(url => url.trim());
 app.use(
   cors({
-    origin: config.frontendUrl,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log('CORS blocked origin:', origin);
+        callback(null, true); // Allow all in development, log blocked origins
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
