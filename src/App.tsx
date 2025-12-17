@@ -67,10 +67,12 @@ const App = () => (
             <Route path="/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
             <Route path="/deposit-approval" element={<ProtectedRoute><DepositApproval /></ProtectedRoute>} />
 
+            {/* Accountant Routes */}
+            <Route path="/verify-receipts" element={<ProtectedRoute><VerifyReceipts /></ProtectedRoute>} />
+            <Route path="/outstanding" element={<ProtectedRoute><OutstandingReport /></ProtectedRoute>} />
+            <Route path="/export" element={<ProtectedRoute><ExportReports /></ProtectedRoute>} />
+
             {/* Placeholder routes for other features */}
-            <Route path="/verify-receipts" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/outstanding" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/export" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/targets" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/performance" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
