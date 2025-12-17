@@ -4,8 +4,7 @@ A comprehensive invoice collection management system for businesses to track inv
 
 ## Live Demo
 
-- **Frontend**: [Vercel Deployment](https://collectflow-buddy.vercel.app)
-- **Backend**: [Railway Deployment](https://collectflow-buddy-production.up.railway.app)
+- **Frontend**: [Vercel Deployment](https://collectflow-buddyd.vercel.app/)
 
 ### Demo Accounts
 
@@ -42,6 +41,7 @@ A comprehensive invoice collection management system for businesses to track inv
 - Tailwind CSS for styling
 - shadcn/ui component library
 - React Router for navigation
+- React Query (TanStack Query) for data caching
 - Sonner for toast notifications
 
 ### Backend
@@ -50,6 +50,7 @@ A comprehensive invoice collection management system for businesses to track inv
 - Prisma ORM
 - PostgreSQL database
 - JWT authentication (access + refresh tokens)
+- In-memory caching with TTL support
 - Multer for file uploads
 - xlsx for Excel parsing
 - Zod for validation
@@ -156,6 +157,8 @@ collectflow-buddy/
 │   │   └── ui/              # shadcn/ui components
 │   ├── contexts/            # React contexts (Auth)
 │   ├── lib/                 # Utilities and API client
+│   │   ├── api.ts           # API client functions
+│   │   └── hooks.ts         # React Query hooks for caching
 │   ├── pages/               # Page components by role
 │   │   ├── admin/
 │   │   ├── collector/
@@ -171,11 +174,12 @@ collectflow-buddy/
 │   ├── src/
 │   │   ├── config/          # Database and app config
 │   │   ├── controllers/     # Route handlers
-│   │   ├── middleware/      # Auth, validation, upload
+│   │   ├── middleware/      # Auth, validation, upload, cache
 │   │   ├── routes/          # API route definitions
 │   │   ├── schemas/         # Zod validation schemas
 │   │   ├── services/        # Business logic
-│   │   └── types/           # TypeScript types
+│   │   ├── types/           # TypeScript types
+│   │   └── utils/           # Utilities (cache, jwt, password)
 │   ├── uploads/             # Uploaded files (receipts)
 │   └── Dockerfile           # Docker config for Railway
 └── public/                   # Static assets
@@ -255,6 +259,54 @@ Example:
 4. When recording a payment, the collector selects the specific invoice
 5. After all invoices are paid, the customer is marked as "visited"
 6. Partial payments update invoice status to "PARTIAL"
+
+## Caching
+
+The application implements caching at both frontend and backend levels for improved performance.
+
+### Backend Caching
+
+In-memory cache with TTL (Time To Live) support:
+
+| Endpoint | Cache Duration |
+|----------|---------------|
+| Products | 5 minutes |
+| Product Categories | 10 minutes |
+| Customers | 2 minutes |
+| Dashboard Stats | 1 minute |
+| Collections Report | 2 minutes |
+| Outstanding Report | 2 minutes |
+| Performance Report | 5 minutes |
+| Collector Stats | 30 seconds |
+| Collector Route | 1 minute |
+| Wallet Balance | 30 seconds |
+
+Cache is automatically invalidated when data is created, updated, or deleted.
+
+### Frontend Caching (React Query)
+
+The frontend uses TanStack Query (React Query) for intelligent data caching:
+
+```typescript
+import { useProducts, useCustomers, useCollectorRoute } from '@/lib/hooks';
+
+// Data is automatically cached and refetched when stale
+const { data, isLoading } = useProducts();
+```
+
+**Default cache settings:**
+- Stale time: 2 minutes
+- Garbage collection: 5 minutes
+- Auto-refetch on window focus: disabled
+
+**Available hooks:**
+- `useProducts()`, `useProduct(id)`, `useProductCategories()`
+- `useCustomers()`, `useCustomer(id)`
+- `useInvoices()`, `useInvoice(id)`, `useInvoicesByCustomer(id)`
+- `usePayments()`, `usePendingPayments()`, `useCreatePayment()`
+- `useDeposits()`, `useWalletBalance()`, `useWalletDetails()`
+- `useCollectorStats()`, `useCollectorRoute()`, `useCollectorWallet()`
+- `useDashboard()`, `useCollectionsReport()`, `useOutstandingReport()`
 
 ## License
 
