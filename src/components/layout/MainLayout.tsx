@@ -32,14 +32,14 @@ export function MainLayout({ children, title, subtitle, showSearch }: MainLayout
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-64 min-h-screen">
         <Header
           title={title}
           subtitle={subtitle}
           showSearch={showSearch}
           onMenuClick={() => setSidebarOpen(true)}
         />
-        <main className="p-6">
+        <main className="p-3 sm:p-4 md:p-6 pb-20 sm:pb-6">
           {children}
         </main>
       </div>
