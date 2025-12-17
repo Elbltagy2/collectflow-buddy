@@ -13,7 +13,6 @@ import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache'
 
 const router = Router();
 
-// All routes require authentication
 router.use(authenticate);
 
 // Get all customers (cached for 2 minutes - shorter due to frequent updates)
