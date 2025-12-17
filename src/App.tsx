@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 // Pages
 import Index from "./pages/Index";
@@ -25,6 +26,12 @@ import CustomerManagement from "./pages/manager/CustomerManagement";
 
 // Admin Pages
 import UserManagement from "./pages/admin/UserManagement";
+import DepositApproval from "./pages/admin/DepositApproval";
+
+// Accountant Pages
+import VerifyReceipts from "./pages/accountant/VerifyReceipts";
+import OutstandingReport from "./pages/accountant/OutstandingReport";
+import ExportReports from "./pages/accountant/ExportReports";
 
 const queryClient = new QueryClient();
 
@@ -36,33 +43,39 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public Route */}
             <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            
+
+            {/* Protected Routes */}
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
             {/* Sales Clerk Routes */}
-            <Route path="/upload-invoices" element={<UploadInvoices />} />
-            <Route path="/invoices" element={<InvoiceList />} />
-            
+            <Route path="/upload-invoices" element={<ProtectedRoute><UploadInvoices /></ProtectedRoute>} />
+            <Route path="/invoices" element={<ProtectedRoute><InvoiceList /></ProtectedRoute>} />
+
             {/* Collector Routes */}
-            <Route path="/my-customers" element={<MyCustomers />} />
-            <Route path="/route" element={<TodaysRoute />} />
-            <Route path="/wallet" element={<MyWallet />} />
-            <Route path="/deposit" element={<MakeDeposit />} />
-            
+            <Route path="/my-customers" element={<ProtectedRoute><MyCustomers /></ProtectedRoute>} />
+            <Route path="/route" element={<ProtectedRoute><TodaysRoute /></ProtectedRoute>} />
+            <Route path="/wallet" element={<ProtectedRoute><MyWallet /></ProtectedRoute>} />
+            <Route path="/deposit" element={<ProtectedRoute><MakeDeposit /></ProtectedRoute>} />
+
             {/* Manager Routes */}
-            <Route path="/customers" element={<CustomerManagement />} />
-            <Route path="/reassign" element={<CustomerManagement />} />
+            <Route path="/customers" element={<ProtectedRoute><CustomerManagement /></ProtectedRoute>} />
+            <Route path="/reassign" element={<ProtectedRoute><CustomerManagement /></ProtectedRoute>} />
+
+            {/* Admin Routes */}
+            <Route path="/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+            <Route path="/deposit-approval" element={<ProtectedRoute><DepositApproval /></ProtectedRoute>} />
 
             {/* Placeholder routes for other features */}
-            <Route path="/verify-receipts" element={<Dashboard />} />
-            <Route path="/outstanding" element={<Dashboard />} />
-            <Route path="/export" element={<Dashboard />} />
-            <Route path="/targets" element={<Dashboard />} />
-            <Route path="/performance" element={<Dashboard />} />
-            <Route path="/users" element={<UserManagement />} />
-            <Route path="/products" element={<Dashboard />} />
-            <Route path="/settings" element={<Dashboard />} />
-            
+            <Route path="/verify-receipts" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/outstanding" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/export" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/targets" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/performance" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/products" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

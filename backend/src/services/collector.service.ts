@@ -249,6 +249,16 @@ export class CollectorService {
   }
 
   async getWalletBalance(collectorId: string): Promise<number> {
+    const details = await this.getWalletDetails(collectorId);
+    return details.availableForDeposit;
+  }
+
+  async getWalletDetails(collectorId: string): Promise<{
+    totalCollected: number;
+    verifiedDeposits: number;
+    pendingDeposits: number;
+    availableForDeposit: number;
+  }> {
     // Total from non-deposited payments
     const paymentsResult = await prisma.payment.aggregate({
       where: {
@@ -258,9 +268,20 @@ export class CollectorService {
       _sum: { amount: true },
     });
 
-    const totalPending = paymentsResult._sum.amount || 0;
+    const totalCollected = paymentsResult._sum.amount || 0;
 
-    // Subtract pending deposits (not yet verified)
+    // Get VERIFIED (approved) deposits
+    const verifiedDepositsResult = await prisma.deposit.aggregate({
+      where: {
+        collectorId,
+        status: DepositStatus.VERIFIED,
+      },
+      _sum: { amount: true },
+    });
+
+    const verifiedDeposits = verifiedDepositsResult._sum.amount || 0;
+
+    // Get PENDING deposits (waiting for admin approval)
     const pendingDepositsResult = await prisma.deposit.aggregate({
       where: {
         collectorId,
@@ -271,7 +292,16 @@ export class CollectorService {
 
     const pendingDeposits = pendingDepositsResult._sum.amount || 0;
 
-    return totalPending - pendingDeposits;
+    // Available = Total collected - verified deposits - pending deposits
+    // Ensure it's never negative
+    const availableForDeposit = Math.max(0, totalCollected - verifiedDeposits - pendingDeposits);
+
+    return {
+      totalCollected,
+      verifiedDeposits,
+      pendingDeposits,
+      availableForDeposit,
+    };
   }
 }
 

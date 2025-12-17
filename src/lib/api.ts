@@ -234,6 +234,14 @@ export const paymentsApi = {
     request<ApiResponse<any>>(`/payments/${id}/verify`, { method: 'PUT', body: JSON.stringify({ verified, notes }) }),
 };
 
+// Wallet Details type
+interface WalletDetails {
+  totalCollected: number;
+  verifiedDeposits: number;
+  pendingDeposits: number;
+  availableForDeposit: number;
+}
+
 // Deposits API
 export const depositsApi = {
   getAll: (params?: { page?: number; limit?: number; collectorId?: string; status?: string }) => {
@@ -243,6 +251,9 @@ export const depositsApi = {
   getById: (id: string) => request<ApiResponse<any>>(`/deposits/${id}`),
   getPending: () => request<ApiResponse<any[]>>('/deposits/pending'),
   getWalletBalance: () => request<ApiResponse<{ balance: number }>>('/deposits/wallet-balance'),
+  getWalletDetails: () => request<ApiResponse<WalletDetails>>('/deposits/wallet-details'),
+  getAdminWalletBalance: () => request<ApiResponse<{ balance: number }>>('/deposits/admin-wallet'),
+  getAdminWalletTransactions: () => request<ApiResponse<any[]>>('/deposits/admin-wallet/transactions'),
   create: (data: any) => request<ApiResponse<any>>('/deposits', { method: 'POST', body: JSON.stringify(data) }),
   uploadReceipt: async (id: string, file: File) => {
     const formData = new FormData();

@@ -11,9 +11,10 @@ import {
   Upload,
   CheckCircle,
   Wallet,
-  Loader2
+  Loader2,
+  Clock,
 } from 'lucide-react';
-import { collectorApi, depositsApi } from '@/lib/api';
+import { depositsApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,32 +25,41 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
+interface WalletDetails {
+  totalCollected: number;
+  verifiedDeposits: number;
+  pendingDeposits: number;
+  availableForDeposit: number;
+}
+
 export default function MakeDeposit() {
   const navigate = useNavigate();
   const [depositMethod, setDepositMethod] = useState<'CASH' | 'FAWRY'>('CASH');
   const [amount, setAmount] = useState('');
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletDetails, setWalletDetails] = useState<WalletDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadWalletBalance();
+    loadWalletDetails();
   }, []);
 
-  const loadWalletBalance = async () => {
+  const loadWalletDetails = async () => {
     try {
-      const response = await collectorApi.getWallet();
+      const response = await depositsApi.getWalletDetails();
       if (response.data) {
-        setWalletBalance(response.data.balance);
+        setWalletDetails(response.data);
       }
     } catch (error) {
-      console.error('Failed to load wallet balance:', error);
-      toast.error('Failed to load wallet balance');
+      console.error('Failed to load wallet details:', error);
+      toast.error('Failed to load wallet details');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const availableBalance = walletDetails?.availableForDeposit || 0;
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,8 +77,8 @@ export default function MakeDeposit() {
       return;
     }
 
-    if (depositAmount > walletBalance) {
-      toast.error('Amount exceeds wallet balance');
+    if (depositAmount > availableBalance) {
+      toast.error('Amount exceeds available balance');
       return;
     }
 
@@ -92,15 +102,12 @@ export default function MakeDeposit() {
       }
 
       toast.success(
-        `${depositMethod === 'CASH' ? 'Cash' : 'Fawry'} deposit of ${formatCurrency(depositAmount)} submitted successfully`
+        `${depositMethod === 'CASH' ? 'Cash' : 'Fawry'} deposit of ${formatCurrency(depositAmount)} submitted for approval`
       );
 
       // Reset form
       setAmount('');
       setReceiptImage(null);
-
-      // Update wallet balance
-      setWalletBalance(prev => prev - depositAmount);
 
       // Navigate to wallet page
       navigate('/wallet');
@@ -130,12 +137,20 @@ export default function MakeDeposit() {
             <Wallet className="h-8 w-8" />
             <div>
               <p className="text-sm opacity-80">Available to Deposit</p>
-              <p className="text-3xl font-bold">{formatCurrency(walletBalance)}</p>
+              <p className="text-3xl font-bold">{formatCurrency(availableBalance)}</p>
             </div>
           </div>
+          {walletDetails && walletDetails.pendingDeposits > 0 && (
+            <div className="mt-4 p-3 bg-white/10 rounded-lg flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span className="text-sm">
+                {formatCurrency(walletDetails.pendingDeposits)} pending admin approval
+              </span>
+            </div>
+          )}
         </Card>
 
-        {walletBalance === 0 ? (
+        {availableBalance === 0 ? (
           <Card className="p-6 text-center">
             <p className="text-muted-foreground">No balance available to deposit.</p>
             <Button
@@ -208,7 +223,7 @@ export default function MakeDeposit() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setAmount(walletBalance.toString())}
+                    onClick={() => setAmount(availableBalance.toString())}
                   >
                     Deposit Full Balance
                   </Button>
@@ -258,7 +273,7 @@ export default function MakeDeposit() {
                 <Button
                   type="submit"
                   className="w-full btn-gradient-primary"
-                  disabled={isSubmitting || walletBalance === 0}
+                  disabled={isSubmitting || availableBalance === 0}
                 >
                   {isSubmitting ? (
                     <>

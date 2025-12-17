@@ -8,13 +8,21 @@ import {
   Banknote,
   Smartphone,
   ArrowUpRight,
-  TrendingUp,
-  Loader2
+  Loader2,
+  Clock,
+  CheckCircle,
 } from 'lucide-react';
-import { collectorApi, paymentsApi } from '@/lib/api';
+import { collectorApi, paymentsApi, depositsApi } from '@/lib/api';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { CollectorStats, Payment } from '@/types';
+
+interface WalletDetails {
+  totalCollected: number;
+  verifiedDeposits: number;
+  pendingDeposits: number;
+  availableForDeposit: number;
+}
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-EG', {
@@ -33,7 +41,7 @@ const formatDate = (dateString: string) => {
 
 export default function MyWallet() {
   const [stats, setStats] = useState<CollectorStats | null>(null);
-  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletDetails, setWalletDetails] = useState<WalletDetails | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -43,17 +51,17 @@ export default function MyWallet() {
 
   const loadData = async () => {
     try {
-      const [statsResponse, walletResponse, paymentsResponse] = await Promise.all([
+      const [statsResponse, walletDetailsResponse, paymentsResponse] = await Promise.all([
         collectorApi.getStats(),
-        collectorApi.getWallet(),
+        depositsApi.getWalletDetails(),
         paymentsApi.getAll({ status: 'PENDING' }),
       ]);
 
       if (statsResponse.data) {
         setStats(statsResponse.data);
       }
-      if (walletResponse.data) {
-        setWalletBalance(walletResponse.data.balance);
+      if (walletDetailsResponse.data) {
+        setWalletDetails(walletDetailsResponse.data);
       }
       if (paymentsResponse.data) {
         setPayments(paymentsResponse.data.map((p: Record<string, unknown>) => ({
@@ -121,23 +129,68 @@ export default function MyWallet() {
           <div className="flex items-center gap-3 mb-4">
             <Wallet className="h-8 w-8" />
             <div>
-              <p className="text-sm opacity-80">Wallet Balance</p>
-              <p className="text-3xl font-bold">{formatCurrency(walletBalance)}</p>
+              <p className="text-sm opacity-80">Available for Deposit</p>
+              <p className="text-3xl font-bold">{formatCurrency(walletDetails?.availableForDeposit || 0)}</p>
             </div>
           </div>
           <p className="text-sm opacity-80 mb-4">
-            Money collected but not yet deposited
+            Money you can deposit to admin now
           </p>
           <Link to="/deposit">
-            <Button variant="secondary" className="gap-2">
+            <Button variant="secondary" className="gap-2" disabled={(walletDetails?.availableForDeposit || 0) <= 0}>
               <ArrowUpRight className="h-4 w-4" />
               Make Deposit
             </Button>
           </Link>
         </Card>
 
-        {/* Breakdown */}
-        <div className="grid gap-4 md:grid-cols-3">
+        {/* Wallet Breakdown */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Banknote className="h-5 w-5 text-primary" />
+              </div>
+              <span className="text-sm text-muted-foreground">Total Collected</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{formatCurrency(walletDetails?.totalCollected || 0)}</p>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-success/10">
+                <CheckCircle className="h-5 w-5 text-success" />
+              </div>
+              <span className="text-sm text-muted-foreground">Deposited (Approved)</span>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{formatCurrency(walletDetails?.verifiedDeposits || 0)}</p>
+          </Card>
+
+          <Card className="p-6 border-warning/50">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-warning/10">
+                <Clock className="h-5 w-5 text-warning" />
+              </div>
+              <span className="text-sm text-muted-foreground">Pending Approval</span>
+            </div>
+            <p className="text-2xl font-bold text-warning">{formatCurrency(walletDetails?.pendingDeposits || 0)}</p>
+            <p className="text-xs text-muted-foreground mt-1">Waiting for admin</p>
+          </Card>
+
+          <Card className="p-6 border-primary/50">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Wallet className="h-5 w-5 text-primary" />
+              </div>
+              <span className="text-sm text-muted-foreground">Available</span>
+            </div>
+            <p className="text-2xl font-bold text-primary">{formatCurrency(walletDetails?.availableForDeposit || 0)}</p>
+            <p className="text-xs text-muted-foreground mt-1">Can deposit now</p>
+          </Card>
+        </div>
+
+        {/* Payment Method Breakdown */}
+        <div className="grid gap-4 md:grid-cols-2">
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-primary/10">
@@ -156,16 +209,6 @@ export default function MyWallet() {
               <span className="text-sm text-muted-foreground">Fawry Pending</span>
             </div>
             <p className="text-2xl font-bold text-foreground">{formatCurrency(fawryPending)}</p>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-success/10">
-                <TrendingUp className="h-5 w-5 text-success" />
-              </div>
-              <span className="text-sm text-muted-foreground">Total Today</span>
-            </div>
-            <p className="text-2xl font-bold text-foreground">{formatCurrency(stats?.totalCollected || 0)}</p>
           </Card>
         </div>
 

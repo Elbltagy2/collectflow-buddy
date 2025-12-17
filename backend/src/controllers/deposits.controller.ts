@@ -114,11 +114,42 @@ export class DepositsController {
     }
   }
 
+  async getWalletDetails(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const collectorId = req.user!.id;
+      const details = await depositsService.getCollectorWalletDetails(collectorId);
+
+      sendSuccess(res, details);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getPendingDeposits(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const deposits = await depositsService.getPendingDeposits();
 
       sendSuccess(res, deposits);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getAdminWalletBalance(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const balance = await depositsService.getAdminWalletBalance();
+
+      sendSuccess(res, { balance });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getAdminWalletTransactions(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const transactions = await depositsService.getAdminWalletTransactions();
+
+      sendSuccess(res, transactions);
     } catch (error) {
       next(error);
     }

@@ -32,6 +32,27 @@ router.get(
   depositsController.getWalletBalance
 );
 
+// Get detailed wallet info (Collector) - includes pending deposits
+router.get(
+  '/wallet-details',
+  authorize(UserRole.COLLECTOR),
+  depositsController.getWalletDetails
+);
+
+// Get admin wallet balance (Admin)
+router.get(
+  '/admin-wallet',
+  authorize(UserRole.ADMIN),
+  depositsController.getAdminWalletBalance
+);
+
+// Get admin wallet transactions (Admin)
+router.get(
+  '/admin-wallet/transactions',
+  authorize(UserRole.ADMIN),
+  depositsController.getAdminWalletTransactions
+);
+
 // Get single deposit
 router.get('/:id', validateParams(depositIdSchema), depositsController.findById);
 

@@ -19,6 +19,7 @@ import {
   UserPlus,
   LogOut,
   FileText,
+  CheckSquare,
 } from 'lucide-react';
 
 const roleNavItems = {
@@ -53,6 +54,7 @@ const roleNavItems = {
     { icon: Users, label: 'Customers', path: '/customers' },
     { icon: Upload, label: 'Upload Invoices', path: '/upload-invoices' },
     { icon: Search, label: 'Search Invoices', path: '/invoices' },
+    { icon: CheckSquare, label: 'Deposit Approval', path: '/deposit-approval' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ],
 };

@@ -39,6 +39,7 @@ enum PaymentStatus {
 enum DepositStatus {
   PENDING
   VERIFIED
+  REJECTED
 }
 
 // Models
@@ -172,8 +173,9 @@ model Deposit {
   updatedAt    DateTime      @updatedAt
 
   // Relations
-  collectorId String
-  collector   User   @relation("CollectorDeposits", fields: [collectorId], references: [id])
+  collectorId          String
+  collector            User                    @relation("CollectorDeposits", fields: [collectorId], references: [id])
+  adminWalletTransaction AdminWalletTransaction?
 
   @@map("deposits")
 }
@@ -193,4 +195,19 @@ model CollectorVisit {
 
   @@unique([collectorId, customerId, visitDate])
   @@map("collector_visits")
+}
+
+// Admin wallet transaction - tracks money received from approved deposits
+model AdminWalletTransaction {
+  id          String   @id @default(cuid())
+  amount      Float
+  type        String   // "DEPOSIT_RECEIVED"
+  description String?
+  createdAt   DateTime @default(now())
+
+  // Reference to the deposit that created this transaction
+  depositId String  @unique
+  deposit   Deposit @relation(fields: [depositId], references: [id])
+
+  @@map("admin_wallet_transactions")
 }

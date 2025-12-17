@@ -2,6 +2,7 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { CreateDepositInput, DepositQueryInput } from '../schemas/deposit.schema';
 import { Deposit, DepositStatus, PaymentStatus } from '@prisma/client';
+import { collectorService } from './collector.service';
 
 export class DepositsService {
   async findAll(
@@ -75,12 +76,12 @@ export class DepositsService {
   }
 
   async create(input: CreateDepositInput, collectorId: string): Promise<any> {
-    // Calculate collector's wallet balance
-    const walletBalance = await this.getCollectorWalletBalance(collectorId);
+    // Get wallet details including pending deposits
+    const walletDetails = await collectorService.getWalletDetails(collectorId);
 
-    if (input.amount > walletBalance) {
+    if (input.amount > walletDetails.availableForDeposit) {
       throw new AppError(
-        `Deposit amount (${input.amount}) exceeds wallet balance (${walletBalance})`,
+        `Deposit amount (${input.amount}) exceeds available balance (${walletDetails.availableForDeposit}). You have ${walletDetails.pendingDeposits} in pending deposits.`,
         400
       );
     }
@@ -105,26 +106,9 @@ export class DepositsService {
     return deposit;
   }
 
-  async verify(id: string, verified: boolean, notes?: string): Promise<any> {
+  async verify(id: string, approved: boolean, notes?: string): Promise<any> {
     const deposit = await prisma.deposit.findUnique({
       where: { id },
-    });
-
-    if (!deposit) {
-      throw new AppError('Deposit not found', 404);
-    }
-
-    if (deposit.status !== DepositStatus.PENDING) {
-      throw new AppError('Deposit has already been processed', 400);
-    }
-
-    const updatedDeposit = await prisma.deposit.update({
-      where: { id },
-      data: {
-        status: verified ? DepositStatus.VERIFIED : DepositStatus.PENDING,
-        verifiedAt: verified ? new Date() : null,
-        notes: notes || deposit.notes,
-      },
       include: {
         collector: {
           select: {
@@ -135,8 +119,52 @@ export class DepositsService {
       },
     });
 
-    // If deposit is verified, mark corresponding payments as deposited
-    if (verified) {
+    if (!deposit) {
+      throw new AppError('Deposit not found', 404);
+    }
+
+    if (deposit.status !== DepositStatus.PENDING) {
+      throw new AppError('Deposit has already been processed', 400);
+    }
+
+    const newStatus = approved ? DepositStatus.VERIFIED : DepositStatus.REJECTED;
+
+    // Use a transaction to ensure both operations succeed or fail together
+    const updatedDeposit = await prisma.$transaction(async (tx) => {
+      const updated = await tx.deposit.update({
+        where: { id },
+        data: {
+          status: newStatus,
+          verifiedAt: approved ? new Date() : null,
+          notes: notes || deposit.notes,
+        },
+        include: {
+          collector: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      // Only when deposit is APPROVED, create admin wallet transaction
+      if (approved) {
+        await tx.adminWalletTransaction.create({
+          data: {
+            amount: deposit.amount,
+            type: 'DEPOSIT_RECEIVED',
+            description: `Deposit from ${deposit.collector.name}`,
+            depositId: deposit.id,
+          },
+        });
+      }
+
+      return updated;
+    });
+
+    // Mark payments as deposited outside the transaction
+    if (approved) {
       await this.markPaymentsAsDeposited(deposit.collectorId, deposit.amount);
     }
 
@@ -170,33 +198,16 @@ export class DepositsService {
   }
 
   async getCollectorWalletBalance(collectorId: string): Promise<number> {
-    // Total collected (verified payments)
-    const paymentsResult = await prisma.payment.aggregate({
-      where: {
-        collectorId,
-        status: { in: [PaymentStatus.PENDING, PaymentStatus.VERIFIED] },
-      },
-      _sum: {
-        amount: true,
-      },
-    });
+    return collectorService.getWalletBalance(collectorId);
+  }
 
-    const totalCollected = paymentsResult._sum.amount || 0;
-
-    // Total deposited (verified deposits)
-    const depositsResult = await prisma.deposit.aggregate({
-      where: {
-        collectorId,
-        status: DepositStatus.VERIFIED,
-      },
-      _sum: {
-        amount: true,
-      },
-    });
-
-    const totalDeposited = depositsResult._sum.amount || 0;
-
-    return totalCollected - totalDeposited;
+  async getCollectorWalletDetails(collectorId: string): Promise<{
+    totalCollected: number;
+    verifiedDeposits: number;
+    pendingDeposits: number;
+    availableForDeposit: number;
+  }> {
+    return collectorService.getWalletDetails(collectorId);
   }
 
   private async markPaymentsAsDeposited(collectorId: string, amount: number): Promise<void> {
@@ -240,6 +251,37 @@ export class DepositsService {
     });
 
     return deposits;
+  }
+
+  async getAdminWalletBalance(): Promise<number> {
+    const result = await prisma.adminWalletTransaction.aggregate({
+      _sum: {
+        amount: true,
+      },
+    });
+
+    return result._sum.amount || 0;
+  }
+
+  async getAdminWalletTransactions(): Promise<any[]> {
+    const transactions = await prisma.adminWalletTransaction.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        deposit: {
+          include: {
+            collector: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return transactions;
   }
 }
 

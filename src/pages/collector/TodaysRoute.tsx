@@ -106,9 +106,14 @@ export default function TodaysRoute() {
     setPaymentMethod('CASH');
     setIsDialogOpen(true);
 
-    // Auto-select first invoice if only one
-    if (customer.invoices.length === 1) {
-      const invoice = customer.invoices[0];
+    // Get unpaid invoices only
+    const unpaidInvoices = customer.invoices.filter(
+      inv => inv.paidAmount < inv.totalAmount
+    );
+
+    // Auto-select first unpaid invoice if only one
+    if (unpaidInvoices.length === 1) {
+      const invoice = unpaidInvoices[0];
       setSelectedInvoice(invoice);
       setPaymentAmount((invoice.totalAmount - invoice.paidAmount).toString());
     }
@@ -116,8 +121,19 @@ export default function TodaysRoute() {
 
   const visitedCount = route.filter(r => r.visited).length;
   const progress = route.length > 0 ? (visitedCount / route.length) * 100 : 0;
-  const totalToCollect = route.reduce((sum, r) => sum + r.todayDueAmount, 0);
-  const collectedAmount = route.filter(r => r.visited).reduce((sum, r) => sum + r.todayDueAmount, 0);
+
+  // Calculate total to collect (sum of all invoice balances - what's still owed)
+  const totalInvoiceAmount = route.reduce((sum, r) =>
+    sum + r.invoices.reduce((invSum, inv) => invSum + inv.totalAmount, 0), 0
+  );
+
+  // Calculate what has been paid so far (sum of paidAmount from all invoices)
+  const collectedAmount = route.reduce((sum, r) =>
+    sum + r.invoices.reduce((invSum, inv) => invSum + inv.paidAmount, 0), 0
+  );
+
+  // Remaining to collect
+  const totalToCollect = totalInvoiceAmount - collectedAmount;
 
   const handleRecordPayment = async () => {
     if (!selectedCustomer || !paymentAmount || !selectedInvoice) {
@@ -146,21 +162,32 @@ export default function TodaysRoute() {
         method: paymentMethod,
       });
 
-      // Mark as visited
-      await collectorApi.markVisited(selectedCustomer.customerId, true);
+      // Calculate new invoice state after payment
+      const newPaidAmount = selectedInvoice.paidAmount + amount;
+      const invoiceFullyPaid = newPaidAmount >= selectedInvoice.totalAmount;
+
+      // Calculate if all invoices will be fully paid after this payment
+      const updatedInvoices = selectedCustomer.invoices.map(inv =>
+        inv.id === selectedInvoice.id
+          ? { ...inv, paidAmount: newPaidAmount, status: invoiceFullyPaid ? 'PAID' : 'PARTIAL' }
+          : inv
+      );
+      const allInvoicesPaid = updatedInvoices.every(inv => inv.paidAmount >= inv.totalAmount);
+      const newTodayDueAmount = selectedCustomer.todayDueAmount - amount;
+
+      // Only mark as visited if ALL invoices are fully paid
+      if (allInvoicesPaid) {
+        await collectorApi.markVisited(selectedCustomer.customerId, true);
+      }
 
       // Update local state
       setRoute(route.map(r =>
         r.customerId === selectedCustomer.customerId
           ? {
               ...r,
-              visited: true,
-              todayDueAmount: r.todayDueAmount - amount,
-              invoices: r.invoices.map(inv =>
-                inv.id === selectedInvoice.id
-                  ? { ...inv, paidAmount: inv.paidAmount + amount }
-                  : inv
-              ),
+              visited: allInvoicesPaid,
+              todayDueAmount: newTodayDueAmount,
+              invoices: updatedInvoices,
             }
           : r
       ));
@@ -203,8 +230,9 @@ export default function TodaysRoute() {
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Today's Due Amount</p>
+              <p className="text-sm text-muted-foreground mb-1">Remaining to Collect</p>
               <p className="text-2xl font-bold text-foreground">{formatCurrency(totalToCollect)}</p>
+              <p className="text-xs text-muted-foreground">of {formatCurrency(totalInvoiceAmount)} total</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground mb-1">Collected So Far</p>
@@ -286,20 +314,23 @@ export default function TodaysRoute() {
                           Navigate
                         </Button>
                       </a>
-                      {!customer.visited && customer.invoices.length > 0 && (
+                      {/* Show Record Payment if there are unpaid invoices */}
+                      {customer.invoices.some(inv => inv.paidAmount < inv.totalAmount) && (
                         <Button
                           size="sm"
                           className="gap-2 ml-auto"
                           onClick={() => handleOpenPaymentDialog(customer)}
                         >
                           <DollarSign className="h-4 w-4" />
-                          Record Payment
+                          {customer.invoices.some(inv => inv.paidAmount > 0 && inv.paidAmount < inv.totalAmount)
+                            ? 'Continue Payment'
+                            : 'Record Payment'}
                         </Button>
                       )}
-                      {customer.visited && (
+                      {customer.visited && customer.invoices.every(inv => inv.paidAmount >= inv.totalAmount) && (
                         <span className="badge-success ml-auto">Completed</span>
                       )}
-                      {!customer.visited && customer.invoices.length === 0 && (
+                      {customer.invoices.length === 0 && (
                         <span className="text-xs text-muted-foreground ml-auto">No invoices due</span>
                       )}
                     </div>
@@ -322,55 +353,69 @@ export default function TodaysRoute() {
                 <p className="font-semibold">{selectedCustomer?.customerName}</p>
               </div>
 
-              {/* Invoice Selection */}
+              {/* Invoice Selection - only show invoices with remaining balance */}
               <div className="space-y-2">
                 <Label>Select Invoice</Label>
-                {selectedCustomer?.invoices.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2">No unpaid invoices for today</p>
-                ) : (
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {selectedCustomer?.invoices.map((invoice) => {
-                      const balance = invoice.totalAmount - invoice.paidAmount;
-                      const isSelected = selectedInvoice?.id === invoice.id;
-                      return (
-                        <div
-                          key={invoice.id}
-                          onClick={() => {
-                            setSelectedInvoice(invoice);
-                            setPaymentAmount(balance.toString());
-                          }}
-                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                            isSelected
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Receipt className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm font-medium">
-                                {invoice.invoiceNo}
+                {(() => {
+                  const unpaidInvoices = selectedCustomer?.invoices.filter(
+                    inv => inv.paidAmount < inv.totalAmount
+                  ) || [];
+
+                  if (unpaidInvoices.length === 0) {
+                    return (
+                      <p className="text-sm text-muted-foreground py-2">No unpaid invoices for today</p>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {unpaidInvoices.map((invoice) => {
+                        const balance = invoice.totalAmount - invoice.paidAmount;
+                        const isSelected = selectedInvoice?.id === invoice.id;
+                        const isPartial = invoice.paidAmount > 0;
+                        return (
+                          <div
+                            key={invoice.id}
+                            onClick={() => {
+                              setSelectedInvoice(invoice);
+                              setPaymentAmount(balance.toString());
+                            }}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                              isSelected
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Receipt className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm font-medium">
+                                  {invoice.invoiceNo}
+                                </span>
+                              </div>
+                              <span className={isPartial ? 'badge-warning' : 'badge-destructive'}>
+                                {isPartial ? 'PARTIAL' : 'UNPAID'}
                               </span>
                             </div>
-                            <span className={
-                              invoice.status === 'PARTIAL' ? 'badge-warning' : 'badge-destructive'
-                            }>
-                              {invoice.status}
-                            </span>
+                            <div className="flex items-center justify-between mt-1">
+                              <span className="text-xs text-muted-foreground">
+                                Due: {formatDate(invoice.dueDate)}
+                              </span>
+                              <span className="text-sm font-semibold text-warning">
+                                Balance: {formatCurrency(balance)}
+                              </span>
+                            </div>
+                            {isPartial && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Paid: {formatCurrency(invoice.paidAmount)} of {formatCurrency(invoice.totalAmount)}
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center justify-between mt-1">
-                            <span className="text-xs text-muted-foreground">
-                              Due: {formatDate(invoice.dueDate)}
-                            </span>
-                            <span className="text-sm font-semibold text-warning">
-                              Balance: {formatCurrency(balance)}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
 
               {selectedInvoice && (
