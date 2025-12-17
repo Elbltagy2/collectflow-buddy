@@ -9,22 +9,24 @@ import {
   assignCollectorSchema,
 } from '../schemas/customer.schema';
 import { UserRole } from '@prisma/client';
+import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
 
 const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
 
-// Get all customers (filtered by role)
-router.get('/', customersController.findAll);
+// Get all customers (cached for 2 minutes - shorter due to frequent updates)
+router.get('/', cacheMiddleware({ ttlSeconds: 120 }), customersController.findAll);
 
-// Get single customer
-router.get('/:id', validateParams(customerIdSchema), customersController.findById);
+// Get single customer (cached for 2 minutes)
+router.get('/:id', cacheMiddleware({ ttlSeconds: 120 }), validateParams(customerIdSchema), customersController.findById);
 
-// Admin and Sales Manager routes
+// Admin and Sales Manager routes - invalidate cache on mutations
 router.post(
   '/',
   authorize(UserRole.ADMIN, UserRole.SALES_MANAGER),
+  invalidateCacheMiddleware(['customer*', 'route:*']),
   validateBody(createCustomerSchema),
   customersController.create
 );
@@ -32,6 +34,7 @@ router.post(
 router.put(
   '/:id',
   authorize(UserRole.ADMIN, UserRole.SALES_MANAGER),
+  invalidateCacheMiddleware(['customer*']),
   validateParams(customerIdSchema),
   validateBody(updateCustomerSchema),
   customersController.update
@@ -40,6 +43,7 @@ router.put(
 router.put(
   '/:id/assign',
   authorize(UserRole.ADMIN, UserRole.SALES_MANAGER),
+  invalidateCacheMiddleware(['customer*', 'route:*']),
   validateParams(customerIdSchema),
   validateBody(assignCollectorSchema),
   customersController.assignCollector
@@ -48,6 +52,7 @@ router.put(
 router.delete(
   '/:id',
   authorize(UserRole.ADMIN),
+  invalidateCacheMiddleware(['customer*', 'route:*', 'invoice*']),
   validateParams(customerIdSchema),
   customersController.delete
 );

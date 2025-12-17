@@ -4,25 +4,27 @@ import { validateBody, validateParams } from '../middleware/validate';
 import { authenticate, authorize } from '../middleware/auth';
 import { createProductSchema, updateProductSchema, productIdSchema } from '../schemas/product.schema';
 import { UserRole } from '@prisma/client';
+import { cacheMiddleware, invalidateCacheMiddleware } from '../middleware/cache';
 
 const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
 
-// Get all products (accessible by all authenticated users)
-router.get('/', productsController.findAll);
+// Get all products (cached for 5 minutes)
+router.get('/', cacheMiddleware({ ttlSeconds: 300 }), productsController.findAll);
 
-// Get product categories
-router.get('/categories', productsController.getCategories);
+// Get product categories (cached for 10 minutes)
+router.get('/categories', cacheMiddleware({ ttlSeconds: 600 }), productsController.getCategories);
 
-// Get single product
-router.get('/:id', validateParams(productIdSchema), productsController.findById);
+// Get single product (cached for 5 minutes)
+router.get('/:id', cacheMiddleware({ ttlSeconds: 300 }), validateParams(productIdSchema), productsController.findById);
 
-// Admin only routes
+// Admin only routes - invalidate cache on mutations
 router.post(
   '/',
   authorize(UserRole.ADMIN),
+  invalidateCacheMiddleware(['product*']),
   validateBody(createProductSchema),
   productsController.create
 );
@@ -30,6 +32,7 @@ router.post(
 router.put(
   '/:id',
   authorize(UserRole.ADMIN),
+  invalidateCacheMiddleware(['product*']),
   validateParams(productIdSchema),
   validateBody(updateProductSchema),
   productsController.update
@@ -38,6 +41,7 @@ router.put(
 router.delete(
   '/:id',
   authorize(UserRole.ADMIN),
+  invalidateCacheMiddleware(['product*']),
   validateParams(productIdSchema),
   productsController.delete
 );
