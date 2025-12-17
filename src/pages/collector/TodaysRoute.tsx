@@ -219,8 +219,8 @@ export default function TodaysRoute() {
     <MainLayout title="Today's Route" subtitle={`${route.length} customers to visit`}>
       <div className="space-y-6 animate-fade-in">
         {/* Progress Overview */}
-        <Card className="p-6">
-          <div className="grid gap-6 md:grid-cols-3">
+        <Card className="p-4 sm:p-6">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-3">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Route Progress</p>
               <Progress value={progress} className="h-3 mb-2" />
@@ -297,28 +297,30 @@ export default function TodaysRoute() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 mt-4">
-                      <a href={`tel:${customer.phone}`}>
-                        <Button variant="outline" size="sm" className="gap-2">
-                          <Phone className="h-4 w-4" />
-                          Call
-                        </Button>
-                      </a>
-                      <a
-                        href={`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Button variant="outline" size="sm" className="gap-2">
-                          <Navigation className="h-4 w-4" />
-                          Navigate
-                        </Button>
-                      </a>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-4">
+                      <div className="flex items-center gap-2">
+                        <a href={`tel:${customer.phone}`}>
+                          <Button variant="outline" size="sm" className="gap-2">
+                            <Phone className="h-4 w-4" />
+                            Call
+                          </Button>
+                        </a>
+                        <a
+                          href={`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button variant="outline" size="sm" className="gap-2">
+                            <Navigation className="h-4 w-4" />
+                            Navigate
+                          </Button>
+                        </a>
+                      </div>
                       {/* Show Record Payment if there are unpaid invoices */}
                       {customer.invoices.some(inv => inv.paidAmount < inv.totalAmount) && (
                         <Button
                           size="sm"
-                          className="gap-2 ml-auto"
+                          className="gap-2 w-full sm:w-auto sm:ml-auto"
                           onClick={() => handleOpenPaymentDialog(customer)}
                         >
                           <DollarSign className="h-4 w-4" />
@@ -328,10 +330,10 @@ export default function TodaysRoute() {
                         </Button>
                       )}
                       {customer.visited && customer.invoices.every(inv => inv.paidAmount >= inv.totalAmount) && (
-                        <span className="badge-success ml-auto">Completed</span>
+                        <span className="badge-success sm:ml-auto">Completed</span>
                       )}
                       {customer.invoices.length === 0 && (
-                        <span className="text-xs text-muted-foreground ml-auto">No invoices due</span>
+                        <span className="text-xs text-muted-foreground sm:ml-auto">No invoices due</span>
                       )}
                     </div>
                   </div>
