@@ -13,22 +13,24 @@ interface MainLayoutProps {
 export function MainLayout({ children, title, subtitle, showSearch }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const closeSidebar = () => setSidebarOpen(false);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-foreground/20 backdrop-blur-sm lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+          onClick={closeSidebar}
         />
       )}
 
       {/* Sidebar */}
       <div className={cn(
-        'fixed inset-y-0 left-0 z-40 transform transition-transform duration-200 lg:translate-x-0',
+        'fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out lg:translate-x-0',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )}>
-        <Sidebar />
+        <Sidebar onClose={closeSidebar} />
       </div>
 
       {/* Main content */}

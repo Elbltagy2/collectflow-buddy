@@ -13,14 +13,18 @@ import {
   BarChart3,
   FileSpreadsheet,
   Target,
-  ArrowLeftRight,
   Settings,
   Package,
   UserPlus,
   LogOut,
   FileText,
   CheckSquare,
+  X,
 } from 'lucide-react';
+
+interface SidebarProps {
+  onClose?: () => void;
+}
 
 const roleNavItems = {
   sales_clerk: [
@@ -67,7 +71,7 @@ const roleLabels = {
   admin: 'Administrator',
 };
 
-export function Sidebar() {
+export function Sidebar({ onClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
 
@@ -76,17 +80,28 @@ export function Sidebar() {
   const navItems = roleNavItems[user.role];
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar">
+    <aside className="h-screen w-64 bg-sidebar">
       <div className="flex h-full flex-col">
         {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-            <Receipt className="h-5 w-5 text-sidebar-primary-foreground" />
+        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
+              <Receipt className="h-5 w-5 text-sidebar-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-sm font-semibold text-sidebar-foreground">InvoiceTrack</h1>
+              <p className="text-xs text-sidebar-foreground/60">Collection System</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-sm font-semibold text-sidebar-foreground">InvoiceTrack</h1>
-            <p className="text-xs text-sidebar-foreground/60">Collection System</p>
-          </div>
+          {/* Close button - mobile only */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="lg:hidden flex h-8 w-8 items-center justify-center rounded-lg hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
         {/* User Info */}
@@ -111,6 +126,7 @@ export function Sidebar() {
                 <li key={item.path}>
                   <Link
                     to={item.path}
+                    onClick={onClose}
                     className={cn(
                       'nav-link',
                       isActive && 'nav-link-active'
