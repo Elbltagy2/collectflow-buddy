@@ -1,7 +1,7 @@
 FROM node:20-alpine
 
-# Install OpenSSL for Prisma
-RUN apk add --no-cache openssl
+# Install OpenSSL and other dependencies for Prisma
+RUN apk add --no-cache openssl openssl-dev libc6-compat
 
 WORKDIR /app
 
@@ -21,6 +21,5 @@ RUN npm run build
 # Create uploads directory
 RUN mkdir -p uploads/receipts uploads/invoices
 
-EXPOSE 3001
-
+# Railway provides PORT dynamically
 CMD ["node", "dist/index.js"]
