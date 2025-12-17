@@ -5,13 +5,13 @@ import { JwtPayload, RefreshTokenPayload, TokenPair } from '../types';
 export const generateAccessToken = (payload: JwtPayload): string => {
   return jwt.sign(payload, config.jwt.secret, {
     expiresIn: config.jwt.expiresIn,
-  });
+  } as jwt.SignOptions);
 };
 
 export const generateRefreshToken = (payload: RefreshTokenPayload): string => {
   return jwt.sign(payload, config.jwt.refreshSecret, {
     expiresIn: config.jwt.refreshExpiresIn,
-  });
+  } as jwt.SignOptions);
 };
 
 export const generateTokenPair = (user: { id: string; email: string; role: string }): TokenPair => {

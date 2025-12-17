@@ -18,7 +18,7 @@ export const depositIdSchema = z.object({
 
 export const depositQuerySchema = z.object({
   collectorId: z.string().cuid().optional(),
-  status: z.enum(['PENDING', 'VERIFIED']).optional(),
+  status: z.enum(['PENDING', 'VERIFIED', 'REJECTED']).optional(),
   method: z.nativeEnum(PaymentMethod).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
