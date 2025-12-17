@@ -8,9 +8,10 @@ const startServer = async () => {
     await prisma.$connect();
     console.log('✅ Database connected successfully');
 
-    // Start server
-    app.listen(config.port, () => {
-      console.log(`🚀 Server running on http://localhost:${config.port}`);
+    // Start server - bind to 0.0.0.0 for container environments
+    const host = '0.0.0.0';
+    app.listen(config.port, host, () => {
+      console.log(`🚀 Server running on http://${host}:${config.port}`);
       console.log(`📝 Environment: ${config.nodeEnv}`);
     });
   } catch (error) {
