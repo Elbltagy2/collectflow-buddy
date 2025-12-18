@@ -30,6 +30,11 @@ const Performance = lazy(() => import("./pages/manager/Performance"));
 // Admin Pages
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const DepositApproval = lazy(() => import("./pages/admin/DepositApproval"));
+const ManageComplaints = lazy(() => import("./pages/admin/ManageComplaints"));
+
+// Complaint Pages (all users)
+const SubmitComplaint = lazy(() => import("./pages/complaints/SubmitComplaint"));
+const MyComplaints = lazy(() => import("./pages/complaints/MyComplaints"));
 
 // Accountant Pages
 const VerifyReceipts = lazy(() => import("./pages/accountant/VerifyReceipts"));
@@ -74,6 +79,7 @@ const App = () => (
             {/* Admin Routes */}
             <Route path="/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
             <Route path="/deposit-approval" element={<ProtectedRoute><DepositApproval /></ProtectedRoute>} />
+            <Route path="/manage-complaints" element={<ProtectedRoute><ManageComplaints /></ProtectedRoute>} />
 
             {/* Accountant Routes */}
             <Route path="/verify-receipts" element={<ProtectedRoute><VerifyReceipts /></ProtectedRoute>} />
@@ -83,6 +89,10 @@ const App = () => (
             {/* Sales Manager Routes */}
             <Route path="/targets" element={<ProtectedRoute><MonthlyTargets /></ProtectedRoute>} />
             <Route path="/performance" element={<ProtectedRoute><Performance /></ProtectedRoute>} />
+
+            {/* Complaint Routes (all users) */}
+            <Route path="/submit-complaint" element={<ProtectedRoute><SubmitComplaint /></ProtectedRoute>} />
+            <Route path="/my-complaints" element={<ProtectedRoute><MyComplaints /></ProtectedRoute>} />
 
             {/* Placeholder routes for other features */}
             <Route path="/products" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
