@@ -304,3 +304,21 @@ export const reportsApi = {
   },
 };
 
+// Complaints API
+export const complaintsApi = {
+  getAll: (params?: { status?: string; priority?: string; page?: number; limit?: number }) => {
+    const query = new URLSearchParams(params as any).toString();
+    return request<any>(`/complaints?${query}`);
+  },
+  getMine: (params?: { page?: number; limit?: number }) => {
+    const query = new URLSearchParams(params as any).toString();
+    return request<any>(`/complaints/mine?${query}`);
+  },
+  getById: (id: string) => request<any>(`/complaints/${id}`),
+  getStats: () => request<any>('/complaints/stats'),
+  create: (data: { title: string; description: string; priority?: string }) =>
+    request<any>('/complaints', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: { status?: string; response?: string }) =>
+    request<any>(`/complaints/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+};
+

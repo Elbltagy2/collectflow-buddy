@@ -20,6 +20,7 @@ import {
   FileText,
   CheckSquare,
   X,
+  MessageSquare,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -31,6 +32,7 @@ const roleNavItems = {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Upload, label: 'Upload Invoices', path: '/upload-invoices' },
     { icon: Search, label: 'Search Invoices', path: '/invoices' },
+    { icon: MessageSquare, label: 'My Complaints', path: '/my-complaints' },
   ],
   collector: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -38,18 +40,21 @@ const roleNavItems = {
     { icon: Route, label: "Today's Route", path: '/route' },
     { icon: Wallet, label: 'My Wallet', path: '/wallet' },
     { icon: PiggyBank, label: 'Make Deposit', path: '/deposit' },
+    { icon: MessageSquare, label: 'My Complaints', path: '/my-complaints' },
   ],
   accountant: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Receipt, label: 'Verify Receipts', path: '/verify-receipts' },
     { icon: FileText, label: 'Outstanding Report', path: '/outstanding' },
     { icon: FileSpreadsheet, label: 'Export Reports', path: '/export' },
+    { icon: MessageSquare, label: 'My Complaints', path: '/my-complaints' },
   ],
   sales_manager: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Users, label: 'Customers', path: '/customers' },
     { icon: Target, label: 'Monthly Targets', path: '/targets' },
     { icon: BarChart3, label: 'Performance', path: '/performance' },
+    { icon: MessageSquare, label: 'My Complaints', path: '/my-complaints' },
   ],
   admin: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -59,6 +64,7 @@ const roleNavItems = {
     { icon: Upload, label: 'Upload Invoices', path: '/upload-invoices' },
     { icon: Search, label: 'Search Invoices', path: '/invoices' },
     { icon: CheckSquare, label: 'Deposit Approval', path: '/deposit-approval' },
+    { icon: MessageSquare, label: 'Manage Complaints', path: '/manage-complaints' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ],
 };

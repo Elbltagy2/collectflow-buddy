@@ -60,6 +60,7 @@ model User {
   deposits          Deposit[]         @relation("CollectorDeposits")
   invoicesCreated   Invoice[]         @relation("CreatedByUser")
   routeVisits       CollectorVisit[]
+  complaints        Complaint[]       @relation("UserComplaints")
 
   @@map("users")
 }
@@ -210,4 +211,40 @@ model AdminWalletTransaction {
   deposit   Deposit @relation(fields: [depositId], references: [id])
 
   @@map("admin_wallet_transactions")
+}
+
+// Complaint status enum
+enum ComplaintStatus {
+  PENDING
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+// Complaint priority enum
+enum ComplaintPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// Complaint model - for users to submit complaints to admin
+model Complaint {
+  id          String            @id @default(cuid())
+  title       String
+  description String
+  status      ComplaintStatus   @default(PENDING)
+  priority    ComplaintPriority @default(MEDIUM)
+  response    String?           // Admin's response
+  resolvedAt  DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Relations
+  userId String
+  user   User   @relation("UserComplaints", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@map("complaints")
 }
