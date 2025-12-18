@@ -54,6 +54,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Location fields (for collectors - home location)
+  homeLatitude  Float?
+  homeLongitude Float?
+
   // Relations
   customersAssigned Customer[]        @relation("CollectorCustomers")
   paymentsCollected Payment[]         @relation("CollectorPayments")
@@ -76,6 +80,10 @@ model Customer {
   isActive         Boolean   @default(true)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+
+  // Location fields
+  latitude  Float?
+  longitude Float?
 
   // Relations
   collectorId String?
@@ -189,6 +197,11 @@ model CollectorVisit {
   visitedAt    DateTime?
   notes        String?
 
+  // Route optimization info
+  optimizedAt       DateTime?
+  optimizedDistance Float?    // Total route distance in meters
+  optimizedDuration Float?    // Total route duration in seconds
+
   // Relations
   collectorId String
   collector   User     @relation(fields: [collectorId], references: [id])
@@ -247,4 +260,15 @@ model Complaint {
   @@index([userId])
   @@index([status])
   @@map("complaints")
+}
+
+// Settings model - for system-wide settings like office location
+model Settings {
+  id              String   @id @default("default")
+  officeLatitude  Float?
+  officeLongitude Float?
+  officeAddress   String?
+  updatedAt       DateTime @updatedAt
+
+  @@map("settings")
 }

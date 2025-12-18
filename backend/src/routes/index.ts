@@ -9,6 +9,7 @@ import depositsRoutes from './deposits.routes';
 import collectorRoutes from './collector.routes';
 import reportsRoutes from './reports.routes';
 import complaintRoutes from './complaint.routes';
+import routeOptimizationRoutes from './route-optimization.routes';
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use('/deposits', depositsRoutes);
 router.use('/collector', collectorRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/complaints', complaintRoutes);
+router.use('/route-optimization', routeOptimizationRoutes);
 
 export default router;

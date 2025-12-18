@@ -6,6 +6,8 @@ export const createCustomerSchema = z.object({
   address: z.string().min(5, 'Address must be at least 5 characters'),
   email: z.string().email('Invalid email address').optional(),
   collectorId: z.string().cuid('Invalid collector ID').optional(),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
 });
 
 export const updateCustomerSchema = z.object({
@@ -15,6 +17,8 @@ export const updateCustomerSchema = z.object({
   email: z.string().email('Invalid email address').optional().nullable(),
   collectorId: z.string().cuid('Invalid collector ID').optional().nullable(),
   isActive: z.boolean().optional(),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
 });
 
 export const assignCollectorSchema = z.object({

@@ -12,7 +12,9 @@ async function main() {
 
   // Clean up existing data
   console.log('🧹 Cleaning existing data...');
+  await prisma.complaint.deleteMany();
   await prisma.collectorVisit.deleteMany();
+  await prisma.adminWalletTransaction.deleteMany();
   await prisma.deposit.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.invoiceItem.deleteMany();
@@ -20,6 +22,7 @@ async function main() {
   await prisma.customer.deleteMany();
   await prisma.product.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.settings.deleteMany();
 
   // Create users
   console.log('👤 Creating users...');
@@ -40,6 +43,9 @@ async function main() {
       password: hashedPassword,
       name: 'Mohamed Ali',
       role: UserRole.COLLECTOR,
+      // Home location: Maadi, Cairo
+      homeLatitude: 29.9602,
+      homeLongitude: 31.2569,
     },
   });
 
@@ -49,6 +55,9 @@ async function main() {
       password: hashedPassword,
       name: 'Ahmed Mahmoud',
       role: UserRole.COLLECTOR,
+      // Home location: Nasr City, Cairo
+      homeLatitude: 30.0511,
+      homeLongitude: 31.3656,
     },
   });
 
@@ -112,92 +121,129 @@ async function main() {
 
   console.log(`✅ Created ${products.length} products`);
 
-  // Create customers
-  console.log('🏪 Creating customers...');
+  // Create customers with GPS coordinates (Cairo area)
+  console.log('🏪 Creating customers with GPS coordinates...');
   const customers = await Promise.all([
     prisma.customer.create({
       data: {
         name: 'Al-Nour Supermarket',
         phone: '01012345678',
-        address: '15 Main St, Cairo',
+        address: '15 Tahrir Square, Downtown Cairo',
         collectorId: collector1.id,
         totalOutstanding: 2500,
         lastPurchaseDate: new Date('2024-01-14'),
+        // Downtown Cairo - Tahrir Square
+        latitude: 30.0444,
+        longitude: 31.2357,
       },
     }),
     prisma.customer.create({
       data: {
         name: 'El-Salam Grocery',
         phone: '01023456789',
-        address: '22 Market Ave, Giza',
+        address: '22 Pyramids Road, Giza',
         collectorId: collector1.id,
         totalOutstanding: 1800,
         lastPurchaseDate: new Date('2024-01-13'),
+        // Giza - near Pyramids
+        latitude: 30.0131,
+        longitude: 31.2089,
       },
     }),
     prisma.customer.create({
       data: {
         name: 'Baraka Mini Market',
         phone: '01034567890',
-        address: '8 Commerce Blvd, Cairo',
+        address: '8 Zamalek St, Zamalek',
         collectorId: collector1.id,
         totalOutstanding: 3200,
         lastPurchaseDate: new Date('2024-01-15'),
+        // Zamalek
+        latitude: 30.0626,
+        longitude: 31.2242,
       },
     }),
     prisma.customer.create({
       data: {
         name: 'Zahra Corner Store',
         phone: '01045678901',
-        address: '45 Side St, Alexandria',
+        address: '45 Road 9, Maadi',
         collectorId: collector1.id,
         totalOutstanding: 950,
         lastPurchaseDate: new Date('2024-01-10'),
+        // Maadi
+        latitude: 29.9602,
+        longitude: 31.2502,
       },
     }),
     prisma.customer.create({
       data: {
         name: 'Masr Wholesale',
         phone: '01056789012',
-        address: '100 Industrial Zone, Cairo',
+        address: '100 Nasr Road, Nasr City',
         collectorId: collector1.id,
         totalOutstanding: 5600,
         lastPurchaseDate: new Date('2024-01-14'),
+        // Nasr City
+        latitude: 30.0511,
+        longitude: 31.3456,
       },
     }),
     prisma.customer.create({
       data: {
         name: 'Delta Supplies',
         phone: '01067890123',
-        address: '33 River Rd, Tanta',
+        address: '33 Dokki St, Dokki',
         collectorId: collector2.id,
         totalOutstanding: 4200,
         lastPurchaseDate: new Date('2024-01-12'),
+        // Dokki
+        latitude: 30.0380,
+        longitude: 31.2117,
       },
     }),
     prisma.customer.create({
       data: {
         name: 'Nile Market',
         phone: '01078901234',
-        address: '77 Nile St, Aswan',
+        address: '77 Heliopolis Ave, Heliopolis',
         collectorId: collector2.id,
         totalOutstanding: 1500,
         lastPurchaseDate: new Date('2024-01-11'),
+        // Heliopolis
+        latitude: 30.0866,
+        longitude: 31.3381,
       },
     }),
     prisma.customer.create({
       data: {
         name: 'Pharaoh Foods',
         phone: '01089012345',
-        address: '12 Pyramid Ave, Giza',
+        address: '12 New Cairo Blvd, New Cairo',
         collectorId: collector2.id,
         totalOutstanding: 2800,
         lastPurchaseDate: new Date('2024-01-13'),
+        // New Cairo
+        latitude: 30.0074,
+        longitude: 31.4913,
       },
     }),
   ]);
 
   console.log(`✅ Created ${customers.length} customers`);
+
+  // Create office settings
+  console.log('🏢 Creating office settings...');
+  await prisma.settings.create({
+    data: {
+      id: 'default',
+      // Office location: Downtown Cairo - near Tahrir
+      officeLatitude: 30.0459,
+      officeLongitude: 31.2389,
+      officeAddress: 'Company HQ, Downtown Cairo',
+    },
+  });
+  console.log('✅ Created office settings with GPS location');
 
   // Create invoices
   console.log('📋 Creating invoices...');

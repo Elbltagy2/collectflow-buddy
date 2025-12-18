@@ -22,4 +22,10 @@ router.put('/route/:customerId/visited', invalidateCacheMiddleware(['route:*', '
 // Get wallet balance (cached for 30 seconds)
 router.get('/wallet', cacheMiddleware({ ttlSeconds: 30 }), collectorController.getWalletBalance);
 
+// Save optimized route order - invalidates route cache
+router.post('/route/order', invalidateCacheMiddleware(['route:*']), collectorController.saveRouteOrder);
+
+// Get route optimization info (cached for 1 minute)
+router.get('/route/optimization-info', cacheMiddleware({ ttlSeconds: 60 }), collectorController.getRouteOptimizationInfo);
+
 export default router;

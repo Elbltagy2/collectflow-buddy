@@ -130,6 +130,8 @@ export class CollectorService {
           todayDueAmount: todayDue,
           visited: false,
           order: index + 1,
+          latitude: customer.latitude,
+          longitude: customer.longitude,
           invoices: unpaidInvoices.map((inv) => ({
             id: inv.id,
             invoiceNo: inv.invoiceNo,
@@ -179,6 +181,8 @@ export class CollectorService {
         todayDueAmount: todayDue,
         visited: visit.visited,
         order: visit.visitOrder,
+        latitude: customer?.latitude,
+        longitude: customer?.longitude,
         invoices: unpaidInvoices.map((inv) => ({
           id: inv.id,
           invoiceNo: inv.invoiceNo,
@@ -251,6 +255,101 @@ export class CollectorService {
   async getWalletBalance(collectorId: string): Promise<number> {
     const details = await this.getWalletDetails(collectorId);
     return details.availableForDeposit;
+  }
+
+  async saveOptimizedRouteOrder(
+    collectorId: string,
+    orderedCustomerIds: string[],
+    totalDistance?: number,
+    totalDuration?: number
+  ): Promise<void> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Update visit order for each customer
+    for (let i = 0; i < orderedCustomerIds.length; i++) {
+      const customerId = orderedCustomerIds[i];
+
+      // Check if visit entry exists for today
+      const existingVisit = await prisma.collectorVisit.findFirst({
+        where: {
+          collectorId,
+          customerId,
+          visitDate: {
+            gte: today,
+            lt: tomorrow,
+          },
+        },
+      });
+
+      if (existingVisit) {
+        // Update existing visit order
+        await prisma.collectorVisit.update({
+          where: { id: existingVisit.id },
+          data: {
+            visitOrder: i + 1,
+            optimizedAt: new Date(),
+            optimizedDistance: totalDistance,
+            optimizedDuration: totalDuration,
+          },
+        });
+      } else {
+        // Create new visit entry with optimized order
+        await prisma.collectorVisit.create({
+          data: {
+            collectorId,
+            customerId,
+            visitDate: today,
+            visitOrder: i + 1,
+            visited: false,
+            optimizedAt: new Date(),
+            optimizedDistance: totalDistance,
+            optimizedDuration: totalDuration,
+          },
+        });
+      }
+    }
+  }
+
+  async getRouteOptimizationInfo(collectorId: string): Promise<{
+    isOptimized: boolean;
+    totalDistance?: number;
+    totalDuration?: number;
+    optimizedAt?: Date;
+  }> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const visit = await prisma.collectorVisit.findFirst({
+      where: {
+        collectorId,
+        visitDate: {
+          gte: today,
+          lt: tomorrow,
+        },
+        optimizedAt: { not: null },
+      },
+      select: {
+        optimizedAt: true,
+        optimizedDistance: true,
+        optimizedDuration: true,
+      },
+    });
+
+    if (visit && visit.optimizedAt) {
+      return {
+        isOptimized: true,
+        totalDistance: visit.optimizedDistance || undefined,
+        totalDuration: visit.optimizedDuration || undefined,
+        optimizedAt: visit.optimizedAt,
+      };
+    }
+
+    return { isOptimized: false };
   }
 
   async getWalletDetails(collectorId: string): Promise<{

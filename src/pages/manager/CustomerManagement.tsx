@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { customersApi, usersApi } from '@/lib/api';
 import { toast } from 'sonner';
+import { MapPicker } from '@/components/ui/MapPicker';
 
 interface Customer {
   id: string;
@@ -37,6 +38,8 @@ interface Customer {
   collectorId: string | null;
   collectorName?: string;
   totalOutstanding: number;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface Collector {
@@ -74,6 +77,8 @@ export default function CustomerManagement() {
     phone: '',
     address: '',
     collectorId: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
 
   useEffect(() => {
@@ -96,6 +101,8 @@ export default function CustomerManagement() {
           collectorId: c.collectorId as string | null,
           collectorName: (c.collector as Record<string, unknown>)?.name as string || null,
           totalOutstanding: c.totalOutstanding as number,
+          latitude: c.latitude as number | null,
+          longitude: c.longitude as number | null,
         })));
       }
 
@@ -149,7 +156,7 @@ export default function CustomerManagement() {
   };
 
   const handleCreateClick = () => {
-    setFormData({ name: '', phone: '', address: '', collectorId: '' });
+    setFormData({ name: '', phone: '', address: '', collectorId: '', latitude: null, longitude: null });
     setIsCreateDialogOpen(true);
   };
 
@@ -160,6 +167,8 @@ export default function CustomerManagement() {
       phone: customer.phone,
       address: customer.address,
       collectorId: customer.collectorId || '',
+      latitude: customer.latitude || null,
+      longitude: customer.longitude || null,
     });
     setIsEditDialogOpen(true);
   };
@@ -182,6 +191,8 @@ export default function CustomerManagement() {
         phone: formData.phone,
         address: formData.address,
         collectorId: formData.collectorId || undefined,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
       });
 
       if (response.data) {
@@ -194,6 +205,8 @@ export default function CustomerManagement() {
           collectorId: response.data.collectorId,
           collectorName: collector?.name,
           totalOutstanding: 0,
+          latitude: response.data.latitude,
+          longitude: response.data.longitude,
         }]);
         toast.success(`Customer ${formData.name} created successfully`);
         setIsCreateDialogOpen(false);
@@ -219,6 +232,8 @@ export default function CustomerManagement() {
         phone: formData.phone,
         address: formData.address,
         collectorId: formData.collectorId || null,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
       });
 
       if (response.data) {
@@ -232,6 +247,8 @@ export default function CustomerManagement() {
                 address: formData.address,
                 collectorId: formData.collectorId || null,
                 collectorName: collector?.name,
+                latitude: formData.latitude,
+                longitude: formData.longitude,
               }
             : c
         ));
@@ -589,6 +606,16 @@ export default function CustomerManagement() {
               </div>
 
               <div className="space-y-2">
+                <Label>Location (for route optimization)</Label>
+                <MapPicker
+                  latitude={formData.latitude}
+                  longitude={formData.longitude}
+                  onLocationChange={(lat, lng) => setFormData({ ...formData, latitude: lat, longitude: lng })}
+                  height="250px"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label>Assign to Collector (optional)</Label>
                 <Select value={formData.collectorId || "none"} onValueChange={(v) => setFormData({ ...formData, collectorId: v === "none" ? "" : v })}>
                   <SelectTrigger>
@@ -663,6 +690,16 @@ export default function CustomerManagement() {
                   placeholder="Enter address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Location (for route optimization)</Label>
+                <MapPicker
+                  latitude={formData.latitude}
+                  longitude={formData.longitude}
+                  onLocationChange={(lat, lng) => setFormData({ ...formData, latitude: lat, longitude: lng })}
+                  height="250px"
                 />
               </div>
 

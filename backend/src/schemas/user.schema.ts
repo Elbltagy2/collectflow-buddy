@@ -7,6 +7,8 @@ export const createUserSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   role: z.nativeEnum(UserRole),
   avatar: z.string().url().optional(),
+  homeLatitude: z.number().min(-90).max(90).optional().nullable(),
+  homeLongitude: z.number().min(-180).max(180).optional().nullable(),
 });
 
 export const updateUserSchema = z.object({
@@ -16,6 +18,8 @@ export const updateUserSchema = z.object({
   role: z.nativeEnum(UserRole).optional(),
   avatar: z.string().url().optional().nullable(),
   isActive: z.boolean().optional(),
+  homeLatitude: z.number().min(-90).max(90).optional().nullable(),
+  homeLongitude: z.number().min(-180).max(180).optional().nullable(),
 });
 
 export const userIdSchema = z.object({

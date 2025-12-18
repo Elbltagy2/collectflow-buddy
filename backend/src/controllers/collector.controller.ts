@@ -50,6 +50,43 @@ export class CollectorController {
       next(error);
     }
   }
+
+  async saveRouteOrder(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const collectorId = req.user!.id;
+      const { orderedCustomerIds, totalDistance, totalDuration } = req.body;
+
+      if (!orderedCustomerIds || !Array.isArray(orderedCustomerIds)) {
+        res.status(400).json({
+          success: false,
+          error: 'orderedCustomerIds array is required',
+        });
+        return;
+      }
+
+      await collectorService.saveOptimizedRouteOrder(
+        collectorId,
+        orderedCustomerIds,
+        totalDistance,
+        totalDuration
+      );
+
+      sendSuccess(res, null, 'Route order saved successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getRouteOptimizationInfo(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const collectorId = req.user!.id;
+      const info = await collectorService.getRouteOptimizationInfo(collectorId);
+
+      sendSuccess(res, info);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const collectorController = new CollectorController();

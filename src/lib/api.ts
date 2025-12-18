@@ -285,6 +285,17 @@ export const collectorApi = {
   markVisited: (customerId: string, visited: boolean = true) =>
     request<ApiResponse<void>>(`/collector/route/${customerId}/visited`, { method: 'PUT', body: JSON.stringify({ visited }) }),
   getWallet: () => request<ApiResponse<{ balance: number }>>('/collector/wallet'),
+  saveRouteOrder: (orderedCustomerIds: string[], totalDistance?: number, totalDuration?: number) =>
+    request<ApiResponse<void>>('/collector/route/order', {
+      method: 'POST',
+      body: JSON.stringify({ orderedCustomerIds, totalDistance, totalDuration })
+    }),
+  getRouteOptimizationInfo: () => request<ApiResponse<{
+    isOptimized: boolean;
+    totalDistance?: number;
+    totalDuration?: number;
+    optimizedAt?: string;
+  }>>('/collector/route/optimization-info'),
 };
 
 // Reports API
@@ -320,5 +331,15 @@ export const complaintsApi = {
     request<any>('/complaints', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: { status?: string; response?: string }) =>
     request<any>(`/complaints/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+};
+
+// Route Optimization API
+export const routeOptimizationApi = {
+  getOptimizedRoute: () => request<ApiResponse<any>>('/route-optimization/today'),
+  optimizeCustomRoute: (customerIds: string[]) =>
+    request<ApiResponse<any>>('/route-optimization/optimize', {
+      method: 'POST',
+      body: JSON.stringify({ customerIds })
+    }),
 };
 

@@ -1,10 +1,11 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { complaintService } from '../services/complaint.service';
 import { ComplaintStatus, ComplaintPriority } from '@prisma/client';
+import { AuthenticatedRequest } from '../types';
 
 class ComplaintController {
   // Create a new complaint (any authenticated user)
-  async create(req: Request, res: Response) {
+  async create(req: AuthenticatedRequest, res: Response) {
     try {
       const { title, description, priority } = req.body;
       const userId = req.user!.id;
@@ -27,7 +28,7 @@ class ComplaintController {
   }
 
   // Get all complaints (admin) or user's complaints
-  async findAll(req: Request, res: Response) {
+  async findAll(req: AuthenticatedRequest, res: Response) {
     try {
       const { status, priority, page, limit } = req.query;
       const user = req.user!;
@@ -55,7 +56,7 @@ class ComplaintController {
   }
 
   // Get my complaints (for non-admin users)
-  async findMine(req: Request, res: Response) {
+  async findMine(req: AuthenticatedRequest, res: Response) {
     try {
       const { page, limit } = req.query;
       const userId = req.user!.id;
@@ -73,7 +74,7 @@ class ComplaintController {
   }
 
   // Get a single complaint by ID
-  async findById(req: Request, res: Response) {
+  async findById(req: AuthenticatedRequest, res: Response) {
     try {
       const { id } = req.params;
       const user = req.user!;
@@ -97,7 +98,7 @@ class ComplaintController {
   }
 
   // Update complaint status/response (admin only)
-  async update(req: Request, res: Response) {
+  async update(req: AuthenticatedRequest, res: Response) {
     try {
       const { id } = req.params;
       const { status, response } = req.body;
@@ -124,7 +125,7 @@ class ComplaintController {
   }
 
   // Get complaint statistics (admin only)
-  async getStats(req: Request, res: Response) {
+  async getStats(req: AuthenticatedRequest, res: Response) {
     try {
       const stats = await complaintService.getStats();
       res.json(stats);

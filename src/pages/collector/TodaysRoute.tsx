@@ -14,9 +14,12 @@ import {
   DollarSign,
   Navigation,
   Loader2,
-  Receipt
+  Receipt,
+  Route,
+  Clock,
+  Ruler
 } from 'lucide-react';
-import { collectorApi, paymentsApi } from '@/lib/api';
+import { collectorApi, paymentsApi, routeOptimizationApi } from '@/lib/api';
 import { toast } from 'sonner';
 
 const formatCurrency = (amount: number) => {
@@ -52,6 +55,14 @@ interface RouteCustomer {
   visited: boolean;
   order: number;
   invoices: RouteInvoice[];
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+interface RouteInfo {
+  totalDistance: number; // meters
+  totalDuration: number; // seconds
+  isOptimized: boolean;
 }
 
 export default function TodaysRoute() {
@@ -63,6 +74,8 @@ export default function TodaysRoute() {
   const [selectedInvoice, setSelectedInvoice] = useState<RouteInvoice | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
 
   useEffect(() => {
     loadRoute();
@@ -70,9 +83,14 @@ export default function TodaysRoute() {
 
   const loadRoute = async () => {
     try {
-      const response = await collectorApi.getRoute();
-      if (response.data) {
-        setRoute(response.data.map((item: any) => ({
+      // Load route and optimization info in parallel
+      const [routeResponse, optimizationResponse] = await Promise.all([
+        collectorApi.getRoute(),
+        collectorApi.getRouteOptimizationInfo(),
+      ]);
+
+      if (routeResponse.data) {
+        const routeData = routeResponse.data.map((item: any) => ({
           customerId: item.customerId,
           customerName: item.customerName,
           address: item.address,
@@ -89,7 +107,22 @@ export default function TodaysRoute() {
             dueDate: inv.dueDate,
             status: inv.status,
           })),
-        })));
+          latitude: item.latitude,
+          longitude: item.longitude,
+        }));
+
+        // Sort by order (which is already saved from optimization)
+        routeData.sort((a: RouteCustomer, b: RouteCustomer) => a.order - b.order);
+        setRoute(routeData);
+      }
+
+      // Restore optimization info if route was previously optimized
+      if (optimizationResponse.data?.isOptimized) {
+        setRouteInfo({
+          isOptimized: true,
+          totalDistance: optimizationResponse.data.totalDistance || 0,
+          totalDuration: optimizationResponse.data.totalDuration || 0,
+        });
       }
     } catch (error) {
       console.error('Failed to load route:', error);
@@ -97,6 +130,81 @@ export default function TodaysRoute() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleOptimizeRoute = async () => {
+    const customersWithLocation = route.filter(r => r.latitude && r.longitude);
+
+    if (customersWithLocation.length < 2) {
+      toast.error('Need at least 2 customers with GPS locations to optimize route');
+      return;
+    }
+
+    setIsOptimizing(true);
+    try {
+      const customerIds = route.map(r => r.customerId);
+      const response = await routeOptimizationApi.optimizeCustomRoute(customerIds);
+
+      if (response.data) {
+        const { orderedLocations, totalDistance, totalDuration } = response.data;
+
+        // Reorder route based on optimized order
+        const optimizedRoute = orderedLocations
+          .filter((loc: any) => loc.id !== 'start' && loc.id !== 'end')
+          .map((loc: any, index: number) => {
+            const customer = route.find(r => r.customerId === loc.id);
+            return customer ? { ...customer, order: index + 1 } : null;
+          })
+          .filter(Boolean) as RouteCustomer[];
+
+        // Add any customers without locations at the end
+        const customersWithoutLocation = route.filter(r => !r.latitude || !r.longitude);
+        customersWithoutLocation.forEach((customer, index) => {
+          optimizedRoute.push({ ...customer, order: optimizedRoute.length + index + 1 });
+        });
+
+        // Save the optimized order to the database
+        const orderedCustomerIds = optimizedRoute.map(r => r.customerId);
+        await collectorApi.saveRouteOrder(orderedCustomerIds, totalDistance, totalDuration);
+
+        setRoute(optimizedRoute);
+        setRouteInfo({
+          totalDistance,
+          totalDuration,
+          isOptimized: true,
+        });
+
+        toast.success('Route optimized and saved!');
+      }
+    } catch (error: any) {
+      console.error('Failed to optimize route:', error);
+      toast.error(error.message || 'Failed to optimize route');
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const formatDistance = (meters: number) => {
+    if (meters >= 1000) {
+      return `${(meters / 1000).toFixed(1)} km`;
+    }
+    return `${Math.round(meters)} m`;
+  };
+
+  const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes} min`;
+  };
+
+  const getNavigationUrl = (customer: RouteCustomer) => {
+    if (customer.latitude && customer.longitude) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${customer.latitude},${customer.longitude}`;
+    }
+    return `https://maps.google.com/?q=${encodeURIComponent(customer.address)}`;
   };
 
   const handleOpenPaymentDialog = (customer: RouteCustomer) => {
@@ -239,6 +347,44 @@ export default function TodaysRoute() {
               <p className="text-2xl font-bold text-success">{formatCurrency(collectedAmount)}</p>
             </div>
           </div>
+
+          {/* Route Optimization */}
+          <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-4">
+              {routeInfo?.isOptimized && (
+                <>
+                  <div className="flex items-center gap-1 text-sm">
+                    <Ruler className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Est. Distance:</span>
+                    <span className="font-medium">{formatDistance(routeInfo.totalDistance)}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-sm">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Est. Time:</span>
+                    <span className="font-medium">{formatDuration(routeInfo.totalDuration)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+            <Button
+              onClick={handleOptimizeRoute}
+              disabled={isOptimizing || route.length < 2}
+              variant={routeInfo?.isOptimized ? "outline" : "default"}
+              className="gap-2"
+            >
+              {isOptimizing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Optimizing...
+                </>
+              ) : (
+                <>
+                  <Route className="h-4 w-4" />
+                  {routeInfo?.isOptimized ? 'Re-optimize Route' : 'Optimize Route'}
+                </>
+              )}
+            </Button>
+          </div>
         </Card>
 
         {/* Route List */}
@@ -306,13 +452,16 @@ export default function TodaysRoute() {
                           </Button>
                         </a>
                         <a
-                          href={`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`}
+                          href={getNavigationUrl(customer)}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
                           <Button variant="outline" size="sm" className="gap-2">
                             <Navigation className="h-4 w-4" />
                             Navigate
+                            {customer.latitude && customer.longitude && (
+                              <MapPin className="h-3 w-3 text-success" />
+                            )}
                           </Button>
                         </a>
                       </div>

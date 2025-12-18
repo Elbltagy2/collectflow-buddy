@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { usersApi } from '@/lib/api';
 import { toast } from 'sonner';
+import { MapPicker } from '@/components/ui/MapPicker';
 
 interface User {
   id: string;
@@ -35,6 +36,8 @@ interface User {
   role: string;
   isActive: boolean;
   createdAt: string;
+  homeLatitude?: number | null;
+  homeLongitude?: number | null;
 }
 
 const ROLES = [
@@ -86,6 +89,8 @@ export default function UserManagement() {
     phone: '',
     password: '',
     role: 'COLLECTOR',
+    homeLatitude: null as number | null,
+    homeLongitude: null as number | null,
   });
 
   useEffect(() => {
@@ -113,6 +118,8 @@ export default function UserManagement() {
       phone: '',
       password: '',
       role: 'COLLECTOR',
+      homeLatitude: null,
+      homeLongitude: null,
     });
     setIsCreateDialogOpen(true);
   };
@@ -125,6 +132,8 @@ export default function UserManagement() {
       phone: user.phone || '',
       password: '',
       role: user.role,
+      homeLatitude: user.homeLatitude || null,
+      homeLongitude: user.homeLongitude || null,
     });
     setIsEditDialogOpen(true);
   };
@@ -142,13 +151,21 @@ export default function UserManagement() {
 
     setIsSubmitting(true);
     try {
-      const response = await usersApi.create({
+      const createData: Record<string, unknown> = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone || undefined,
         password: formData.password,
         role: formData.role,
-      });
+      };
+
+      // Add home location for collectors
+      if (formData.role === 'COLLECTOR') {
+        createData.homeLatitude = formData.homeLatitude;
+        createData.homeLongitude = formData.homeLongitude;
+      }
+
+      const response = await usersApi.create(createData);
 
       if (response.data) {
         setUsers([...users, response.data]);
@@ -171,7 +188,7 @@ export default function UserManagement() {
 
     setIsSubmitting(true);
     try {
-      const updateData: Record<string, string | undefined> = {
+      const updateData: Record<string, unknown> = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone || undefined,
@@ -180,6 +197,12 @@ export default function UserManagement() {
 
       if (formData.password) {
         updateData.password = formData.password;
+      }
+
+      // Add home location for collectors
+      if (formData.role === 'COLLECTOR') {
+        updateData.homeLatitude = formData.homeLatitude;
+        updateData.homeLongitude = formData.homeLongitude;
       }
 
       const response = await usersApi.update(selectedUser.id, updateData);
@@ -458,6 +481,18 @@ export default function UserManagement() {
                 </Select>
               </div>
 
+              {formData.role === 'COLLECTOR' && (
+                <div className="space-y-2">
+                  <Label>Home Location (for route optimization)</Label>
+                  <MapPicker
+                    latitude={formData.homeLatitude}
+                    longitude={formData.homeLongitude}
+                    onLocationChange={(lat, lng) => setFormData({ ...formData, homeLatitude: lat, homeLongitude: lng })}
+                    height="200px"
+                  />
+                </div>
+              )}
+
               <div className="flex gap-2 pt-4">
                 <Button
                   variant="outline"
@@ -545,6 +580,18 @@ export default function UserManagement() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {formData.role === 'COLLECTOR' && (
+                <div className="space-y-2">
+                  <Label>Home Location (for route optimization)</Label>
+                  <MapPicker
+                    latitude={formData.homeLatitude}
+                    longitude={formData.homeLongitude}
+                    onLocationChange={(lat, lng) => setFormData({ ...formData, homeLatitude: lat, homeLongitude: lng })}
+                    height="200px"
+                  />
+                </div>
+              )}
 
               <div className="flex gap-2 pt-4">
                 <Button
