@@ -19,11 +19,11 @@ A comprehensive invoice collection management system for businesses to track inv
 ## Features
 
 ### Role-Based Access
-- **Admin**: Full system access - manage users, products, customers, upload invoices, approve deposits
-- **Sales Clerk**: Upload invoices via Excel, create manual invoices, search invoices
-- **Collector**: View assigned customers, daily routes, record payments, manage wallet, make deposits
-- **Accountant**: Verify receipts, view outstanding reports, export reports
-- **Sales Manager**: Manage customers, set monthly targets, view performance metrics
+- **Admin**: Full system access - manage users, products, customers, upload invoices, approve deposits, manage complaints
+- **Sales Clerk**: Upload invoices via Excel, create manual invoices, search invoices, submit complaints
+- **Collector**: View assigned customers, daily routes, record payments, manage wallet, make deposits, submit complaints
+- **Accountant**: Verify receipts, view outstanding reports, export reports, submit complaints
+- **Sales Manager**: Manage customers, set monthly targets, view performance metrics, submit complaints
 
 ### Core Functionality
 - **Invoice Management**: Upload invoices via Excel or create manually with due dates
@@ -31,6 +31,7 @@ A comprehensive invoice collection management system for businesses to track inv
 - **Payment Collection**: Collectors record payments against specific invoices
 - **Wallet Management**: Track collected amounts before deposit
 - **Deposit Tracking**: Upload receipt images for verification
+- **Complaint System**: All users can submit complaints with priority levels, admin can review and respond
 - **Mobile Responsive**: Fully responsive design for field collectors
 
 ## Tech Stack
@@ -42,6 +43,7 @@ A comprehensive invoice collection management system for businesses to track inv
 - shadcn/ui component library
 - React Router for navigation
 - React Query (TanStack Query) for data caching
+- React.lazy() for code splitting and lazy loading
 - Sonner for toast notifications
 
 ### Backend
@@ -160,11 +162,12 @@ collectflow-buddy/
 │   │   ├── api.ts           # API client functions
 │   │   └── hooks.ts         # React Query hooks for caching
 │   ├── pages/               # Page components by role
-│   │   ├── admin/
+│   │   ├── admin/           # Admin pages (ManageComplaints, etc.)
 │   │   ├── collector/
 │   │   ├── accountant/
 │   │   ├── manager/
 │   │   ├── sales-clerk/
+│   │   ├── complaints/      # Complaint pages (SubmitComplaint, MyComplaints)
 │   │   └── dashboards/
 │   └── App.tsx              # Main app with routes
 ├── backend/                  # Backend source
@@ -237,6 +240,14 @@ collectflow-buddy/
 - `GET /api/reports/outstanding` - Outstanding balances
 - `GET /api/reports/performance` - Collector performance
 
+### Complaints
+- `GET /api/complaints` - List all complaints (Admin)
+- `GET /api/complaints/mine` - List user's own complaints
+- `GET /api/complaints/stats` - Complaint statistics (Admin)
+- `GET /api/complaints/:id` - Get complaint details
+- `POST /api/complaints` - Submit new complaint
+- `PUT /api/complaints/:id` - Update complaint status/response (Admin)
+
 ## Excel Invoice Format
 
 When uploading invoices via Excel, use these column headers:
@@ -259,6 +270,26 @@ Example:
 4. When recording a payment, the collector selects the specific invoice
 5. After all invoices are paid, the customer is marked as "visited"
 6. Partial payments update invoice status to "PARTIAL"
+
+## Performance Optimizations
+
+### Lazy Loading (Code Splitting)
+
+All page components are lazy loaded using React.lazy() and Suspense for optimal bundle size and faster initial load:
+
+```typescript
+// Pages are loaded on-demand when navigating
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const MyComplaints = lazy(() => import("./pages/complaints/MyComplaints"));
+const ManageComplaints = lazy(() => import("./pages/admin/ManageComplaints"));
+// ... all other pages
+```
+
+**Benefits:**
+- Smaller initial bundle size
+- Faster first page load
+- Pages load only when needed
+- Loading spinner shown during page transitions
 
 ## Caching
 
