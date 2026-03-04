@@ -12,7 +12,7 @@ import {
   Clock,
   CheckCircle,
 } from 'lucide-react';
-import { collectorApi, paymentsApi, depositsApi } from '@/lib/api';
+import { collectorApi, paymentsApi, depositsApi } from '@/lib/api-client';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { CollectorStats, Payment } from '@/types';

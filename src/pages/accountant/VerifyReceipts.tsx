@@ -24,7 +24,7 @@ import {
   Receipt,
   CreditCard,
 } from 'lucide-react';
-import { paymentsApi } from '@/lib/api';
+import { paymentsApi } from '@/lib/api-client';
 import { toast } from 'sonner';
 
 const formatCurrency = (amount: number) => {

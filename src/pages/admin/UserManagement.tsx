@@ -24,7 +24,7 @@ import {
   Trash2,
   Shield
 } from 'lucide-react';
-import { usersApi } from '@/lib/api';
+import { usersApi } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { MapPicker } from '@/components/ui/MapPicker';
 

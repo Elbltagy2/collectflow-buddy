@@ -27,7 +27,7 @@ import {
   Filter,
   Phone,
 } from 'lucide-react';
-import { reportsApi, usersApi } from '@/lib/api';
+import { reportsApi, usersApi } from '@/lib/api-client';
 import { toast } from 'sonner';
 
 const formatCurrency = (amount: number) => {

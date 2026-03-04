@@ -15,7 +15,7 @@ import {
   CheckCircle,
   Loader2
 } from 'lucide-react';
-import { collectorApi } from '@/lib/api';
+import { collectorApi } from '@/lib/api-client';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { CollectorStats, DailyRoute } from '@/types';

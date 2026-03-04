@@ -15,7 +15,7 @@ import {
   Loader2,
   DollarSign
 } from 'lucide-react';
-import { customersApi, invoicesApi } from '@/lib/api';
+import { customersApi, invoicesApi } from '@/lib/api-client';
 import { Customer, Invoice } from '@/types';
 import { toast } from 'sonner';
 

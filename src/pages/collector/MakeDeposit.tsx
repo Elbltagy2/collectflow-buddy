@@ -14,7 +14,7 @@ import {
   Loader2,
   Clock,
 } from 'lucide-react';
-import { depositsApi } from '@/lib/api';
+import { depositsApi } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 

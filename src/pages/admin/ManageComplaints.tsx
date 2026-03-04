@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { complaintsApi } from '@/lib/api';
+import { complaintsApi } from '@/lib/api-client';
 import { MessageSquare, Clock, CheckCircle, XCircle, AlertCircle, Users } from 'lucide-react';
 import { format } from 'date-fns';
 

@@ -21,7 +21,7 @@ import {
   Users,
   TrendingUp,
 } from 'lucide-react';
-import { reportsApi } from '@/lib/api';
+import { reportsApi } from '@/lib/api-client';
 import { toast } from 'sonner';
 
 type ReportType = 'collections' | 'outstanding' | 'performance';

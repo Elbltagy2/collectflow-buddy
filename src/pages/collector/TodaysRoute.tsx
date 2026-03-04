@@ -19,7 +19,7 @@ import {
   Clock,
   Ruler
 } from 'lucide-react';
-import { collectorApi, paymentsApi, routeOptimizationApi } from '@/lib/api';
+import { collectorApi, paymentsApi, routeOptimizationApi } from '@/lib/api-client';
 import { toast } from 'sonner';
 
 const formatCurrency = (amount: number) => {

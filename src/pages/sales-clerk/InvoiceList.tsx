@@ -10,7 +10,7 @@ import {
   Eye,
   Loader2
 } from 'lucide-react';
-import { invoicesApi } from '@/lib/api';
+import { invoicesApi } from '@/lib/api-client';
 import { Invoice } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {

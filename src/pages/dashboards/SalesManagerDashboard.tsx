@@ -16,7 +16,7 @@ import {
   Loader2,
   TrendingDown,
 } from 'lucide-react';
-import { reportsApi } from '@/lib/api';
+import { reportsApi } from '@/lib/api-client';
 import { Link } from 'react-router-dom';
 
 const formatCurrency = (amount: number) => {

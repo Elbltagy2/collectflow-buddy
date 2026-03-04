@@ -23,7 +23,7 @@ import {
   Image,
   Wallet,
 } from 'lucide-react';
-import { depositsApi } from '@/lib/api';
+import { depositsApi } from '@/lib/api-client';
 import { toast } from 'sonner';
 
 const formatCurrency = (amount: number) => {

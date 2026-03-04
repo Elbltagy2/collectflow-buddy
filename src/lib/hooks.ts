@@ -8,7 +8,7 @@ import {
   collectorApi,
   reportsApi,
   usersApi,
-} from './api';
+} from './api-client';
 
 // Query Keys
 export const queryKeys = {

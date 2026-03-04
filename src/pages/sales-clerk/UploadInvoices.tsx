@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/data/mockData';
 import { toast } from 'sonner';
-import { invoicesApi, customersApi, productsApi } from '@/lib/api';
+import { invoicesApi, customersApi, productsApi } from '@/lib/api-client';
 
 interface ParsedInvoice {
   id: string;

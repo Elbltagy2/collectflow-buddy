@@ -28,7 +28,7 @@ import {
   Calendar,
   Award,
 } from 'lucide-react';
-import { reportsApi } from '@/lib/api';
+import { reportsApi } from '@/lib/api-client';
 import { toast } from 'sonner';
 
 const formatCurrency = (amount: number) => {
