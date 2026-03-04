@@ -40,9 +40,18 @@ export default function Login() {
     setIsLoading(false);
   };
 
-  const handleQuickLogin = (demoEmail: string) => {
+  const handleQuickLogin = async (demoEmail: string) => {
     setEmail(demoEmail);
     setPassword('demo123');
+    setError('');
+    setIsLoading(true);
+    const success = await login(demoEmail, 'demo123');
+    if (success) {
+      navigate('/dashboard');
+    } else {
+      setError('Invalid email or password');
+    }
+    setIsLoading(false);
   };
 
   return (

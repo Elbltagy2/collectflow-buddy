@@ -2,7 +2,7 @@
 
 export const mockUsers = [
   { id: 'u1', name: 'Ahmed Admin', email: 'admin@demo.com', role: 'ADMIN' },
-  { id: 'u2', name: 'Sara Sales', email: 'sales@demo.com', role: 'SALES_CLERK' },
+  { id: 'u2', name: 'Sara Sales', email: 'clerk@demo.com', role: 'SALES_CLERK' },
   { id: 'u3', name: 'Omar Collector', email: 'collector@demo.com', role: 'COLLECTOR' },
   { id: 'u4', name: 'Fatma Accountant', email: 'accountant@demo.com', role: 'ACCOUNTANT' },
   { id: 'u5', name: 'Khaled Manager', email: 'manager@demo.com', role: 'SALES_MANAGER' },
@@ -25,19 +25,20 @@ export const mockProducts = [
 export const mockProductCategories = ['Filters', 'Accessories', 'Consumables', 'Devices'];
 
 export const mockCustomers = [
-  { id: 'c1', name: 'Mohamed Hassan', phone: '01012345678', address: '15 Tahrir St, Cairo', collectorId: 'u3', totalOutstanding: 3200, lastPurchaseDate: '2026-02-20', latitude: 30.0444, longitude: 31.2357 },
-  { id: 'c2', name: 'Amira Saeed', phone: '01098765432', address: '22 Nile Ave, Giza', collectorId: 'u3', totalOutstanding: 1500, lastPurchaseDate: '2026-02-15', latitude: 30.0131, longitude: 31.2089 },
-  { id: 'c3', name: 'Tarek Mostafa', phone: '01155566677', address: '8 October St, 6th October', collectorId: 'u3', totalOutstanding: 4800, lastPurchaseDate: '2026-01-28', latitude: 29.9728, longitude: 30.9429 },
-  { id: 'c4', name: 'Noura Ali', phone: '01234567890', address: '45 Heliopolis, Cairo', collectorId: 'u6', totalOutstanding: 2100, lastPurchaseDate: '2026-02-25', latitude: 30.0911, longitude: 31.3225 },
-  { id: 'c5', name: 'Yasser Ibrahim', phone: '01567891234', address: '10 Maadi St, Cairo', collectorId: 'u6', totalOutstanding: 5500, lastPurchaseDate: '2026-01-10', latitude: 29.9602, longitude: 31.2569 },
-  { id: 'c6', name: 'Dina Kamal', phone: '01111222333', address: '33 Zamalek, Cairo', collectorId: 'u3', totalOutstanding: 800, lastPurchaseDate: '2026-03-01', latitude: 30.0626, longitude: 31.2196 },
-  { id: 'c7', name: 'Hossam Farid', phone: '01099887766', address: '5 Dokki St, Giza', collectorId: 'u6', totalOutstanding: 3750, lastPurchaseDate: '2026-02-10', latitude: 30.0392, longitude: 31.2012 },
-  { id: 'c8', name: 'Laila Mahmoud', phone: '01288776655', address: '17 Nasr City, Cairo', collectorId: 'u3', totalOutstanding: 0, lastPurchaseDate: '2026-02-28', latitude: 30.0511, longitude: 31.3456 },
+  { id: 'c1', name: 'Mohamed Hassan', phone: '01012345678', address: '15 Tahrir St, Cairo', collectorId: 'u3', collectorName: 'Omar Collector', totalOutstanding: 3200, lastPurchaseDate: '2026-02-20', latitude: 30.0444, longitude: 31.2357, collector: { name: 'Omar Collector' } },
+  { id: 'c2', name: 'Amira Saeed', phone: '01098765432', address: '22 Nile Ave, Giza', collectorId: 'u3', collectorName: 'Omar Collector', totalOutstanding: 1500, lastPurchaseDate: '2026-02-15', latitude: 30.0131, longitude: 31.2089, collector: { name: 'Omar Collector' } },
+  { id: 'c3', name: 'Tarek Mostafa', phone: '01155566677', address: '8 October St, 6th October', collectorId: 'u3', collectorName: 'Omar Collector', totalOutstanding: 4800, lastPurchaseDate: '2026-01-28', latitude: 29.9728, longitude: 30.9429, collector: { name: 'Omar Collector' } },
+  { id: 'c4', name: 'Noura Ali', phone: '01234567890', address: '45 Heliopolis, Cairo', collectorId: 'u6', collectorName: 'Youssef Collector', totalOutstanding: 2100, lastPurchaseDate: '2026-02-25', latitude: 30.0911, longitude: 31.3225, collector: { name: 'Youssef Collector' } },
+  { id: 'c5', name: 'Yasser Ibrahim', phone: '01567891234', address: '10 Maadi St, Cairo', collectorId: 'u6', collectorName: 'Youssef Collector', totalOutstanding: 5500, lastPurchaseDate: '2026-01-10', latitude: 29.9602, longitude: 31.2569, collector: { name: 'Youssef Collector' } },
+  { id: 'c6', name: 'Dina Kamal', phone: '01111222333', address: '33 Zamalek, Cairo', collectorId: 'u3', collectorName: 'Omar Collector', totalOutstanding: 800, lastPurchaseDate: '2026-03-01', latitude: 30.0626, longitude: 31.2196, collector: { name: 'Omar Collector' } },
+  { id: 'c7', name: 'Hossam Farid', phone: '01099887766', address: '5 Dokki St, Giza', collectorId: 'u6', collectorName: 'Youssef Collector', totalOutstanding: 3750, lastPurchaseDate: '2026-02-10', latitude: 30.0392, longitude: 31.2012, collector: { name: 'Youssef Collector' } },
+  { id: 'c8', name: 'Laila Mahmoud', phone: '01288776655', address: '17 Nasr City, Cairo', collectorId: 'u3', collectorName: 'Omar Collector', totalOutstanding: 0, lastPurchaseDate: '2026-02-28', latitude: 30.0511, longitude: 31.3456, collector: { name: 'Omar Collector' } },
 ];
 
 export const mockInvoices = [
   {
     id: 'inv1', invoiceNo: 'INV-2026-001', customerId: 'c1', customerName: 'Mohamed Hassan',
+    customer: { name: 'Mohamed Hassan' },
     items: [
       { productId: 'p1', productName: 'Premium Water Filter', quantity: 2, unitPrice: 1500, total: 3000 },
       { productId: 'p3', productName: 'Replacement Cartridge', quantity: 1, unitPrice: 250, total: 250 },
@@ -47,6 +48,7 @@ export const mockInvoices = [
   },
   {
     id: 'inv2', invoiceNo: 'INV-2026-002', customerId: 'c2', customerName: 'Amira Saeed',
+    customer: { name: 'Amira Saeed' },
     items: [
       { productId: 'p2', productName: 'Standard Water Filter', quantity: 1, unitPrice: 800, total: 800 },
       { productId: 'p4', productName: 'Installation Kit', quantity: 1, unitPrice: 350, total: 350 },
@@ -56,6 +58,7 @@ export const mockInvoices = [
   },
   {
     id: 'inv3', invoiceNo: 'INV-2026-003', customerId: 'c3', customerName: 'Tarek Mostafa',
+    customer: { name: 'Tarek Mostafa' },
     items: [
       { productId: 'p6', productName: 'UV Sterilizer', quantity: 1, unitPrice: 2200, total: 2200 },
       { productId: 'p3', productName: 'Replacement Cartridge', quantity: 4, unitPrice: 250, total: 1000 },
@@ -65,6 +68,7 @@ export const mockInvoices = [
   },
   {
     id: 'inv4', invoiceNo: 'INV-2026-004', customerId: 'c4', customerName: 'Noura Ali',
+    customer: { name: 'Noura Ali' },
     items: [
       { productId: 'p7', productName: 'Water Softener', quantity: 1, unitPrice: 3500, total: 3500 },
     ],
@@ -73,6 +77,7 @@ export const mockInvoices = [
   },
   {
     id: 'inv5', invoiceNo: 'INV-2026-005', customerId: 'c5', customerName: 'Yasser Ibrahim',
+    customer: { name: 'Yasser Ibrahim' },
     items: [
       { productId: 'p1', productName: 'Premium Water Filter', quantity: 3, unitPrice: 1500, total: 4500 },
       { productId: 'p8', productName: 'Pipe Connector Set', quantity: 2, unitPrice: 120, total: 240 },
@@ -82,6 +87,7 @@ export const mockInvoices = [
   },
   {
     id: 'inv6', invoiceNo: 'INV-2026-006', customerId: 'c6', customerName: 'Dina Kamal',
+    customer: { name: 'Dina Kamal' },
     items: [
       { productId: 'p2', productName: 'Standard Water Filter', quantity: 1, unitPrice: 800, total: 800 },
     ],
@@ -90,6 +96,7 @@ export const mockInvoices = [
   },
   {
     id: 'inv7', invoiceNo: 'INV-2026-007', customerId: 'c7', customerName: 'Hossam Farid',
+    customer: { name: 'Hossam Farid' },
     items: [
       { productId: 'p7', productName: 'Water Softener', quantity: 1, unitPrice: 3500, total: 3500 },
       { productId: 'p3', productName: 'Replacement Cartridge', quantity: 1, unitPrice: 250, total: 250 },
@@ -99,6 +106,7 @@ export const mockInvoices = [
   },
   {
     id: 'inv8', invoiceNo: 'INV-2026-008', customerId: 'c8', customerName: 'Laila Mahmoud',
+    customer: { name: 'Laila Mahmoud' },
     items: [
       { productId: 'p5', productName: 'Water Purifier Tablet', quantity: 5, unitPrice: 50, total: 250 },
     ],
@@ -108,17 +116,17 @@ export const mockInvoices = [
 ];
 
 export const mockPayments = [
-  { id: 'pay1', invoiceId: 'inv1', customerId: 'c1', customerName: 'Mohamed Hassan', collectorId: 'u3', collectorName: 'Omar Collector', amount: 50, method: 'cash' as const, status: 'verified' as const, createdAt: '2026-02-22T10:30:00Z' },
-  { id: 'pay2', invoiceId: 'inv4', customerId: 'c4', customerName: 'Noura Ali', collectorId: 'u6', collectorName: 'Youssef Collector', amount: 1400, method: 'fawry' as const, status: 'verified' as const, createdAt: '2026-02-27T14:00:00Z' },
-  { id: 'pay3', invoiceId: 'inv8', customerId: 'c8', customerName: 'Laila Mahmoud', collectorId: 'u3', collectorName: 'Omar Collector', amount: 250, method: 'cash' as const, status: 'deposited' as const, createdAt: '2026-02-28T11:00:00Z' },
-  { id: 'pay4', invoiceId: 'inv2', customerId: 'c2', customerName: 'Amira Saeed', collectorId: 'u3', collectorName: 'Omar Collector', amount: 500, method: 'cash' as const, status: 'pending' as const, createdAt: '2026-03-03T09:00:00Z' },
-  { id: 'pay5', invoiceId: 'inv5', customerId: 'c5', customerName: 'Yasser Ibrahim', collectorId: 'u6', collectorName: 'Youssef Collector', amount: 2000, method: 'fawry' as const, status: 'pending' as const, createdAt: '2026-03-03T15:00:00Z' },
+  { id: 'pay1', invoiceId: 'inv1', customerId: 'c1', customerName: 'Mohamed Hassan', collectorId: 'u3', collectorName: 'Omar Collector', amount: 50, method: 'cash' as const, status: 'verified' as const, receiptImage: null, notes: null, createdAt: '2026-02-22T10:30:00Z', invoice: { id: 'inv1', invoiceNo: 'INV-2026-001', totalAmount: 3250 }, customer: { id: 'c1', name: 'Mohamed Hassan' }, collector: { id: 'u3', name: 'Omar Collector' } },
+  { id: 'pay2', invoiceId: 'inv4', customerId: 'c4', customerName: 'Noura Ali', collectorId: 'u6', collectorName: 'Youssef Collector', amount: 1400, method: 'fawry' as const, status: 'verified' as const, receiptImage: null, notes: null, createdAt: '2026-02-27T14:00:00Z', invoice: { id: 'inv4', invoiceNo: 'INV-2026-004', totalAmount: 3500 }, customer: { id: 'c4', name: 'Noura Ali' }, collector: { id: 'u6', name: 'Youssef Collector' } },
+  { id: 'pay3', invoiceId: 'inv8', customerId: 'c8', customerName: 'Laila Mahmoud', collectorId: 'u3', collectorName: 'Omar Collector', amount: 250, method: 'cash' as const, status: 'deposited' as const, receiptImage: null, notes: null, createdAt: '2026-02-28T11:00:00Z', invoice: { id: 'inv8', invoiceNo: 'INV-2026-008', totalAmount: 250 }, customer: { id: 'c8', name: 'Laila Mahmoud' }, collector: { id: 'u3', name: 'Omar Collector' } },
+  { id: 'pay4', invoiceId: 'inv2', customerId: 'c2', customerName: 'Amira Saeed', collectorId: 'u3', collectorName: 'Omar Collector', amount: 500, method: 'cash' as const, status: 'pending' as const, receiptImage: null, notes: null, createdAt: '2026-03-03T09:00:00Z', invoice: { id: 'inv2', invoiceNo: 'INV-2026-002', totalAmount: 1150 }, customer: { id: 'c2', name: 'Amira Saeed' }, collector: { id: 'u3', name: 'Omar Collector' } },
+  { id: 'pay5', invoiceId: 'inv5', customerId: 'c5', customerName: 'Yasser Ibrahim', collectorId: 'u6', collectorName: 'Youssef Collector', amount: 2000, method: 'fawry' as const, status: 'pending' as const, receiptImage: null, notes: null, createdAt: '2026-03-03T15:00:00Z', invoice: { id: 'inv5', invoiceNo: 'INV-2026-005', totalAmount: 4740 }, customer: { id: 'c5', name: 'Yasser Ibrahim' }, collector: { id: 'u6', name: 'Youssef Collector' } },
 ];
 
 export const mockDeposits = [
-  { id: 'd1', collectorId: 'u3', collectorName: 'Omar Collector', amount: 250, method: 'cash' as const, status: 'verified' as const, receiptImage: undefined, createdAt: '2026-03-01T12:00:00Z' },
-  { id: 'd2', collectorId: 'u6', collectorName: 'Youssef Collector', amount: 1400, method: 'fawry' as const, status: 'pending' as const, receiptImage: undefined, createdAt: '2026-03-02T16:00:00Z' },
-  { id: 'd3', collectorId: 'u3', collectorName: 'Omar Collector', amount: 300, method: 'cash' as const, status: 'pending' as const, receiptImage: undefined, createdAt: '2026-03-03T10:00:00Z' },
+  { id: 'd1', collectorId: 'u3', collectorName: 'Omar Collector', amount: 250, method: 'cash' as const, status: 'verified' as const, receiptImage: null, notes: null, createdAt: '2026-03-01T12:00:00Z', collector: { id: 'u3', name: 'Omar Collector', email: 'collector@demo.com' } },
+  { id: 'd2', collectorId: 'u6', collectorName: 'Youssef Collector', amount: 1400, method: 'fawry' as const, status: 'pending' as const, receiptImage: null, notes: null, createdAt: '2026-03-02T16:00:00Z', collector: { id: 'u6', name: 'Youssef Collector', email: 'collector2@demo.com' } },
+  { id: 'd3', collectorId: 'u3', collectorName: 'Omar Collector', amount: 300, method: 'cash' as const, status: 'pending' as const, receiptImage: null, notes: null, createdAt: '2026-03-03T10:00:00Z', collector: { id: 'u3', name: 'Omar Collector', email: 'collector@demo.com' } },
 ];
 
 export const mockComplaints = [
@@ -196,11 +204,11 @@ export const mockCollectorStats = {
 };
 
 export const mockCollectorRoute = [
-  { customerId: 'c1', customerName: 'Mohamed Hassan', address: '15 Tahrir St, Cairo', phone: '01012345678', outstandingAmount: 3200, visited: true, order: 1, latitude: 30.0444, longitude: 31.2357 },
-  { customerId: 'c2', customerName: 'Amira Saeed', address: '22 Nile Ave, Giza', phone: '01098765432', outstandingAmount: 1150, visited: true, order: 2, latitude: 30.0131, longitude: 31.2089 },
-  { customerId: 'c6', customerName: 'Dina Kamal', address: '33 Zamalek, Cairo', phone: '01111222333', outstandingAmount: 800, visited: false, order: 3, latitude: 30.0626, longitude: 31.2196 },
-  { customerId: 'c3', customerName: 'Tarek Mostafa', address: '8 October St, 6th October', phone: '01155566677', outstandingAmount: 3200, visited: false, order: 4, latitude: 29.9728, longitude: 30.9429 },
-  { customerId: 'c8', customerName: 'Laila Mahmoud', address: '17 Nasr City, Cairo', phone: '01288776655', outstandingAmount: 0, visited: true, order: 5, latitude: 30.0511, longitude: 31.3456 },
+  { customerId: 'c1', customerName: 'Mohamed Hassan', address: '15 Tahrir St, Cairo', phone: '01012345678', outstandingAmount: 3200, todayDueAmount: 3200, visited: true, order: 1, latitude: 30.0444, longitude: 31.2357, invoices: [{ id: 'inv1', invoiceNo: 'INV-2026-001', totalAmount: 3250, paidAmount: 50, dueDate: '2026-03-20T00:00:00Z', status: 'PARTIAL' }] },
+  { customerId: 'c2', customerName: 'Amira Saeed', address: '22 Nile Ave, Giza', phone: '01098765432', outstandingAmount: 1150, todayDueAmount: 1150, visited: true, order: 2, latitude: 30.0131, longitude: 31.2089, invoices: [{ id: 'inv2', invoiceNo: 'INV-2026-002', totalAmount: 1150, paidAmount: 0, dueDate: '2026-03-15T00:00:00Z', status: 'UNPAID' }] },
+  { customerId: 'c6', customerName: 'Dina Kamal', address: '33 Zamalek, Cairo', phone: '01111222333', outstandingAmount: 800, todayDueAmount: 800, visited: false, order: 3, latitude: 30.0626, longitude: 31.2196, invoices: [{ id: 'inv6', invoiceNo: 'INV-2026-006', totalAmount: 800, paidAmount: 0, dueDate: '2026-04-01T00:00:00Z', status: 'UNPAID' }] },
+  { customerId: 'c3', customerName: 'Tarek Mostafa', address: '8 October St, 6th October', phone: '01155566677', outstandingAmount: 3200, todayDueAmount: 3200, visited: false, order: 4, latitude: 29.9728, longitude: 30.9429, invoices: [{ id: 'inv3', invoiceNo: 'INV-2026-003', totalAmount: 3200, paidAmount: 0, dueDate: '2026-02-28T00:00:00Z', status: 'UNPAID' }] },
+  { customerId: 'c8', customerName: 'Laila Mahmoud', address: '17 Nasr City, Cairo', phone: '01288776655', outstandingAmount: 0, todayDueAmount: 0, visited: true, order: 5, latitude: 30.0511, longitude: 31.3456, invoices: [{ id: 'inv8', invoiceNo: 'INV-2026-008', totalAmount: 250, paidAmount: 250, dueDate: '2026-03-28T00:00:00Z', status: 'PAID' }] },
 ];
 
 export const mockComplaintStats = {
